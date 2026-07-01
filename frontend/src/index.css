@@ -1,0 +1,209 @@
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── NOVA DS TOKENS ──────────────────────────────── */
+:root, .dark {
+  --nova-bg: #080B12;
+  --nova-bg-elev: #0E1421;
+  --nova-bg-elev-2: #1A2B40;
+  --nova-border: #22304A;
+  --nova-navy: #1A2B40;
+  --nova-navy-light: #2C4366;
+  --nova-blue: #3D7BFF;
+  --nova-red: #CF190F;
+  --nova-text: #EEF2F8;
+  --nova-text-muted: #9AA6BA;
+  --nova-text-dim: #5D6880;
+  --glass: rgba(255, 255, 255, 0.05);
+  --glass-brd: rgba(255, 255, 255, 0.10);
+  --glass-hover: rgba(255, 255, 255, 0.08);
+  --c-success: #4ADE80;
+  --c-warning: #FBBF24;
+  --c-danger: #FF6B6B;
+  --c-info: #6F9BFF;
+}
+
+.light {
+  --nova-bg: #EEF1F7;
+  --nova-bg-elev: #FFFFFF;
+  --nova-bg-elev-2: #E7EBF3;
+  --nova-border: #D9DFEA;
+  --nova-navy: #1A2B40;
+  --nova-navy-light: #33486A;
+  --nova-blue: #2B62D6;
+  --nova-red: #CF190F;
+  --nova-text: #10182A;
+  --nova-text-muted: #4A586E;
+  --nova-text-dim: #8A93A6;
+  --glass: rgba(16, 24, 42, 0.04);
+  --glass-brd: rgba(16, 24, 42, 0.12);
+  --glass-hover: rgba(16, 24, 42, 0.07);
+  --c-success: #15803D;
+  --c-warning: #B45309;
+  --c-danger: #DC2626;
+  --c-info: #2B62D6;
+}
+
+* {
+  border-color: var(--nova-border);
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 100%;
+}
+html.a-plus { font-size: 125%; }
+html.a-plus-plus { font-size: 155%; }
+
+body {
+  font-family: 'Sora', sans-serif;
+  background: var(--nova-bg);
+  color: var(--nova-text);
+  margin: 0;
+}
+
+/* ── Glassmorphism ───────────────────────────────── */
+.glass-card {
+  background: var(--glass);
+  border: 1px solid var(--glass-brd);
+  backdrop-filter: blur(18px) saturate(120%);
+  border-radius: 1.125rem;
+  transition: all 0.15s;
+}
+.glass-card:hover {
+  background: var(--glass-hover);
+}
+
+/* ── Botões ──────────────────────────────────────── */
+.btn-primary {
+  background: var(--glass);
+  border: 1px solid var(--glass-brd);
+  backdrop-filter: blur(18px) saturate(120%);
+  color: var(--nova-text);
+  border-radius: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: 'Sora', sans-serif;
+  transition: all 0.15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.btn-primary:hover { background: var(--glass-hover); transform: translateY(-1px); }
+.btn-primary:active { transform: translateY(1px); }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+.btn-blue {
+  background: rgba(61, 123, 255, 0.14);
+  border: 1px solid rgba(61, 123, 255, 0.35);
+  color: var(--nova-blue);
+  border-radius: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: 'Sora', sans-serif;
+  transition: all 0.15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.btn-blue:hover { background: rgba(61, 123, 255, 0.22); transform: translateY(-1px); }
+.btn-blue:active { transform: translateY(1px); }
+.btn-blue:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+.btn-red {
+  background: rgba(207, 25, 15, 0.13);
+  border: 1px solid rgba(207, 25, 15, 0.40);
+  color: var(--nova-red);
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.875rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: 'Sora', sans-serif;
+  transition: all 0.15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.btn-red:hover { background: rgba(207, 25, 15, 0.2); }
+
+.btn-ghost {
+  background: transparent;
+  border: 1px solid var(--glass-brd);
+  color: var(--nova-text-muted);
+  border-radius: 0.375rem;
+  padding: 0.3rem 0.6rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: 'Sora', sans-serif;
+  transition: all 0.15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+.btn-ghost:hover { color: var(--nova-text); background: var(--glass); }
+
+/* ── Inputs ──────────────────────────────────────── */
+.nova-input {
+  background: var(--glass);
+  border: 1px solid var(--glass-brd);
+  border-radius: 0.5rem;
+  color: var(--nova-text);
+  font-family: 'Sora', sans-serif;
+  font-size: 0.875rem;
+  padding: 0.625rem 0.875rem;
+  width: 100%;
+  transition: border-color 0.15s;
+  outline: none;
+}
+.nova-input::placeholder { color: var(--nova-text-dim); }
+.nova-input:focus { border-color: rgba(61, 123, 255, 0.5); }
+.nova-input:focus-visible { outline: 2px solid var(--nova-blue); outline-offset: 2px; }
+
+.nova-textarea {
+  background: var(--glass);
+  border: 1px solid var(--glass-brd);
+  border-radius: 0.75rem;
+  color: var(--nova-text);
+  font-family: 'Sora', sans-serif;
+  font-size: 0.875rem;
+  padding: 0.875rem 1rem;
+  width: 100%;
+  resize: vertical;
+  min-height: 160px;
+  transition: border-color 0.15s;
+  outline: none;
+  line-height: 1.6;
+}
+.nova-textarea::placeholder { color: var(--nova-text-dim); }
+.nova-textarea:focus { border-color: rgba(61, 123, 255, 0.5); }
+
+/* ── Badges ──────────────────────────────────────── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2em 0.625em;
+  border-radius: 20px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+}
+.badge-alta { background: rgba(255, 107, 107, 0.12); color: var(--c-danger); border: 1px solid rgba(255, 107, 107, 0.25); }
+.badge-media { background: rgba(251, 191, 36, 0.10); color: var(--c-warning); border: 1px solid rgba(251, 191, 36, 0.25); }
+.badge-baixa { background: rgba(111, 155, 255, 0.10); color: var(--c-info); border: 1px solid rgba(111, 155, 255, 0.25); }
+.badge-synced { background: rgba(74, 222, 128, 0.10); color: var(--c-success); border: 1px solid rgba(74, 222, 128, 0.25); }
+.badge-optional { background: var(--glass); color: var(--nova-text-dim); border: 1px solid var(--glass-brd); }
+
+/* ── Scrollbar ───────────────────────────────────── */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--nova-navy-light); border-radius: 4px; }
+
+/* ── Focus ───────────────────────────────────────── */
+button:focus-visible { outline: 2px solid var(--nova-blue); outline-offset: 2px; }

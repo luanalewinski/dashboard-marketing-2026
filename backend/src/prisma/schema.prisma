@@ -1,0 +1,54 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Campaign {
+  id            String   @id @default(cuid())
+  name          String
+  objective     String?
+  sourceType    String   // "text" | "audio"
+  rawBrief      String
+  status        String   @default("draft") // draft | reviewed | synced
+  clickupListId String?
+  createdAt     DateTime @default(now())
+  tasks         Task[]
+}
+
+model Task {
+  id            String        @id @default(cuid())
+  campaignId    String
+  campaign      Campaign      @relation(fields: [campaignId], references: [id])
+  name          String
+  description   String?
+  priority      String        // "alta" | "media" | "baixa"
+  isOptional    Boolean       @default(false)
+  dueDate       DateTime?
+  tags          String?       // CSV simples
+  clickupTaskId String?
+  status        String        @default("pending") // pending | synced | closed
+  subtasks      Subtask[]
+  production    ProductionLog?
+}
+
+model Subtask {
+  id     String @id @default(cuid())
+  taskId String
+  task   Task   @relation(fields: [taskId], references: [id])
+  name   String
+  status String @default("pending")
+}
+
+model ProductionLog {
+  id                    String   @id @default(cuid())
+  taskId                String   @unique
+  task                  Task     @relation(fields: [taskId], references: [id])
+  mode                  String   // "ia" | "hibrido" | "manual"
+  estimatedSavedMinutes Int      @default(0)
+  actualMinutes         Int?
+  closedAt              DateTime @default(now())
+}
