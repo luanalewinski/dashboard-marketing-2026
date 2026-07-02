@@ -51,6 +51,22 @@ const NAV_SECTIONS = [
     ],
   },
   {
+    label: 'Canais',
+    items: [
+      {
+        label: 'Instagram',
+        to: '/instagram',
+        color: '#E1306C',
+        icon: (
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
+            <path d="M17 2H7a5 5 0 0 0-5 5v10a5 5 0 0 0 5 5h10a5 5 0 0 0 5-5V7a5 5 0 0 0-5-5z"/>
+            <circle cx="12" cy="12" r="3"/><circle cx="17.5" cy="6.5" r="1"/>
+          </svg>
+        ),
+      },
+    ],
+  },
+  {
     label: 'Times',
     items: [
       {
