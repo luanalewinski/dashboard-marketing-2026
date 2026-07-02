@@ -5,6 +5,7 @@ import { tasksRouter } from './routes/tasks';
 import { clickupRouter } from './routes/clickup';
 import { productionRouter } from './routes/production';
 import { dashboardRouter } from './routes/dashboard';
+import { eventosRouter } from './routes/eventos';
 
 const app = express();
 
@@ -22,6 +23,7 @@ app.use('/api/tasks', tasksRouter);
 app.use('/api/clickup', clickupRouter);
 app.use('/api/production', productionRouter);
 app.use('/api/dashboard', dashboardRouter);
+app.use('/api/eventos', eventosRouter);
 
 // ── Handler global de erros ───────────────────────────────────────────
 // eslint-disable-next-line @typescript-eslint/no-unused-vars

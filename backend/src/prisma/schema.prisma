@@ -52,3 +52,49 @@ model ProductionLog {
   actualMinutes         Int?
   closedAt              DateTime @default(now())
 }
+
+// ── Módulo de Eventos ─────────────────────────────────────────────────
+
+model Evento {
+  id          String         @id @default(cuid())
+  name        String
+  description String?
+  category    String?        // "institucional" | "treinamento" | "comercial" | "outro"
+  isRecurring Boolean        @default(true)
+  createdAt   DateTime       @default(now())
+  editions    EventoEdicao[]
+}
+
+model EventoEdicao {
+  id            String                @id @default(cuid())
+  eventoId      String
+  evento        Evento                @relation(fields: [eventoId], references: [id])
+  year          Int
+  status        String                @default("planejamento") // planejamento | em_andamento | concluido
+  notes         String?
+  clickupListId String?
+  createdAt     DateTime              @default(now())
+  checklist     EventoChecklistItem[]
+  links         EventoLink[]
+
+  @@unique([eventoId, year])
+}
+
+model EventoChecklistItem {
+  id       String       @id @default(cuid())
+  edicaoId String
+  edicao   EventoEdicao @relation(fields: [edicaoId], references: [id])
+  name     String
+  done     Boolean      @default(false)
+  category String?      // "design" | "copy" | "logistica" | "aprovacao" | "outro"
+  order    Int          @default(0)
+}
+
+model EventoLink {
+  id       String       @id @default(cuid())
+  edicaoId String
+  edicao   EventoEdicao @relation(fields: [edicaoId], references: [id])
+  type     String       // "drive" | "figma" | "form" | "site" | "social" | "outro"
+  label    String
+  url      String
+}
