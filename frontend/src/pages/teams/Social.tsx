@@ -49,58 +49,66 @@ export default function Social() {
         </a>
       </div>
 
-      <AiSummaryCard
-        team="Social & Design"
-        summary="O time está executando tarefas de criação de conteúdo e design para campanhas ativas. Acompanhe ao vivo os status diretamente do ClickUp."
-        highlights={[
-          `${doing.length} tarefa${doing.length !== 1 ? 's' : ''} em andamento neste momento`,
-          `${tasks.filter(t => t.status.status === 'em aprovação').length} aguardando aprovação`,
-          `${tasks.filter(t => t.status.type === 'closed').length} tarefas concluídas na lista`,
-        ]}
-      />
-
       {error && (
         <div style={{ padding: '1rem', borderRadius: '.75rem', background: 'rgba(255,107,107,.1)', border: '1px solid rgba(255,107,107,.2)', color: '#FF6B6B', fontSize: '.8125rem', marginBottom: '1rem' }}>
           Erro ao carregar tarefas do ClickUp: {error}
         </div>
       )}
 
-      {loading ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '.5rem' }}>
-          {[1,2,3,4].map(i => (
-            <div key={i} style={{ height: 52, borderRadius: '.75rem', background: 'rgba(255,255,255,.04)', animation: 'pulse 1.5s ease-in-out infinite' }} />
-          ))}
-        </div>
-      ) : (
-        <>
-          <div style={{ marginBottom: '1.25rem' }}>
-            <div style={{ fontSize: '.75rem', fontWeight: 700, color: 'var(--nova-text-dim)', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: '.75rem' }}>
-              Em andamento ({doing.length})
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '.5rem' }}>
-              {doing.length === 0
-                ? <div style={{ fontSize: '.8125rem', color: 'var(--nova-text-dim)', padding: '.75rem' }}>Nenhuma tarefa em andamento.</div>
-                : doing.map(t => <TaskRow key={t.id} task={t} />)
-              }
-            </div>
-          </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 272px', gap: '1.25rem', alignItems: 'start' }}>
 
-          <div>
-            <div style={{ fontSize: '.75rem', fontWeight: 700, color: 'var(--nova-text-dim)', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: '.75rem' }}>
-              Outras tarefas ({other.length})
-            </div>
+        {/* Coluna esquerda: tarefas */}
+        <div>
+          {loading ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '.5rem' }}>
-              {other.slice(0, 20).map(t => <TaskRow key={t.id} task={t} />)}
-              {other.length > 20 && (
-                <a href={`https://app.clickup.com/36941541/v/l/${CU.LIST_SOCIAL}`} target="_blank" rel="noopener noreferrer"
-                  style={{ textAlign: 'center', fontSize: '.8125rem', color: '#3D7BFF', padding: '.5rem', textDecoration: 'none' }}>
-                  Ver todas no ClickUp ({other.length - 20} mais) →
-                </a>
-              )}
+              {[1,2,3,4].map(i => (
+                <div key={i} style={{ height: 52, borderRadius: '.75rem', background: 'rgba(255,255,255,.04)', animation: 'pulse 1.5s ease-in-out infinite' }} />
+              ))}
             </div>
-          </div>
-        </>
-      )}
+          ) : (
+            <>
+              <div style={{ marginBottom: '1.25rem' }}>
+                <div style={{ fontSize: '.75rem', fontWeight: 700, color: 'var(--nova-text-dim)', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: '.75rem' }}>
+                  Em andamento ({doing.length})
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '.5rem' }}>
+                  {doing.length === 0
+                    ? <div style={{ fontSize: '.8125rem', color: 'var(--nova-text-dim)', padding: '.75rem' }}>Nenhuma tarefa em andamento.</div>
+                    : doing.map(t => <TaskRow key={t.id} task={t} />)
+                  }
+                </div>
+              </div>
+              <div>
+                <div style={{ fontSize: '.75rem', fontWeight: 700, color: 'var(--nova-text-dim)', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: '.75rem' }}>
+                  Outras tarefas ({other.length})
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '.5rem' }}>
+                  {other.slice(0, 20).map(t => <TaskRow key={t.id} task={t} />)}
+                  {other.length > 20 && (
+                    <a href={`https://app.clickup.com/36941541/v/l/${CU.LIST_SOCIAL}`} target="_blank" rel="noopener noreferrer"
+                      style={{ textAlign: 'center', fontSize: '.8125rem', color: '#3D7BFF', padding: '.5rem', textDecoration: 'none' }}>
+                      Ver todas no ClickUp ({other.length - 20} mais) →
+                    </a>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Coluna direita: resumo da IA */}
+        <div style={{ position: 'sticky', top: '1rem' }}>
+          <AiSummaryCard
+            team="Social & Design"
+            summary="O time está executando tarefas de criação de conteúdo e design para campanhas ativas. Acompanhe ao vivo os status diretamente do ClickUp."
+            highlights={[
+              `${doing.length} tarefa${doing.length !== 1 ? 's' : ''} em andamento`,
+              `${tasks.filter(t => t.status.status === 'em aprovação').length} aguardando aprovação`,
+              `${tasks.filter(t => t.status.type === 'closed').length} concluídas`,
+            ]}
+          />
+        </div>
+      </div>
     </div>
   );
 }
