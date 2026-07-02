@@ -1,366 +1,401 @@
-import { useNavigate, Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend,
 } from 'recharts';
+import { getListTasks, CU, CUTask, CUAssignee } from '../lib/clickup';
 
-const MEMBERS = [
-  {
-    name: 'Ana Lima', team: 'Design', teamColor: '#FBBF24', teamPath: '/time/design',
-    avatar: 'AL',
-    tasks: [
-      { name: 'Banner principal Black Friday', status: 'doing', priority: 'alta' },
-      { name: 'Posts Feed Instagram', status: 'done', priority: 'alta' },
-      { name: 'Email marketing Natal', status: 'todo', priority: 'baixa' },
-    ],
-  },
-  {
-    name: 'Carlos Mendes', team: 'Social', teamColor: '#3D7BFF', teamPath: '/time/social',
-    avatar: 'CM',
-    tasks: [
-      { name: 'Roteiro Reels Black Friday', status: 'doing', priority: 'alta' },
-      { name: 'Stories promoção relâmpago', status: 'doing', priority: 'alta' },
-      { name: 'Calendário editorial Agosto', status: 'todo', priority: 'media' },
-    ],
-  },
-  {
-    name: 'Beatriz Costa', team: 'Benchmarking', teamColor: '#6F9BFF', teamPath: '/time/benchmarking',
-    avatar: 'BC',
-    tasks: [
-      { name: 'Análise de concorrentes Q3', status: 'review', priority: 'media' },
-      { name: 'Relatório de share of voice', status: 'doing', priority: 'media' },
-    ],
-  },
-  {
-    name: 'Rafael Souza', team: 'Atendimento', teamColor: '#4ADE80', teamPath: '/time/atendimento',
-    avatar: 'RS',
-    tasks: [
-      { name: 'Script atendimento Black Friday', status: 'doing', priority: 'media' },
-      { name: 'FAQ de promoções', status: 'doing', priority: 'media' },
-      { name: 'Treinamento equipe suporte', status: 'todo', priority: 'alta' },
-    ],
-  },
+// ── Tipos internos ────────────────────────────────────────────────────
+interface TeamData {
+  key: string;
+  label: string;
+  color: string;
+  path: string;
+  tasks: CUTask[];
+}
+
+const TEAMS: Omit<TeamData, 'tasks'>[] = [
+  { key: 'social',    label: 'Social & Design', color: '#3D7BFF', path: '/time/social' },
+  { key: 'analytics', label: 'Analíticos',       color: '#6F9BFF', path: '/time/benchmarking' },
+  { key: 'ev002',     label: 'Conv. Cartagena',  color: '#FBBF24', path: '/eventos' },
+  { key: 'ev003',     label: 'CORBAN 360',        color: '#4ADE80', path: '/eventos' },
 ];
 
-const TASK_STATUS: Record<string, { label: string; color: string; bg: string }> = {
-  todo:   { label: 'A fazer',      color: 'var(--nova-text-dim)', bg: 'rgba(93,104,128,.15)' },
-  doing:  { label: 'Em andamento', color: 'var(--nova-blue)',     bg: 'rgba(61,123,255,.12)' },
-  review: { label: 'Em revisão',   color: 'var(--c-warning)',     bg: 'rgba(251,191,36,.12)' },
-  done:   { label: 'Concluída',    color: 'var(--c-success)',     bg: 'rgba(74,222,128,.12)' },
+const LIST_IDS: Record<string, string> = {
+  social:    CU.LIST_SOCIAL,
+  analytics: CU.LIST_ANALYTICS,
+  ev002:     CU.LIST_EV002,
+  ev003:     CU.LIST_EV003,
 };
 
-// ── Dados mockados ────────────────────────────────────────────────────────────
-
-const SUMMARY = {
-  totalSavedHours: 127.5,
-  totalTasks: 48,
-  closedTasks: 34,
-  avgSavedPerTask: 2.25,
-  modeDistribution: { ia: 68, hibrido: 20, manual: 12 },
-  savedByCampaign: [
-    { campaignName: 'Black Friday', savedHours: 42 },
-    { campaignName: 'Natal 2025', savedHours: 31 },
-    { campaignName: 'Dia das Mães', savedHours: 24 },
-    { campaignName: 'Volta às Aulas', savedHours: 18 },
-    { campaignName: 'Páscoa', savedHours: 12.5 },
-  ],
-  deadlineCompliance: { onTime: 84, late: 16 },
+const STATUS_COLOR: Record<string, string> = {
+  'a fazer':      '#5D6880',
+  'em andamento': '#3D7BFF',
+  'em aprovação': '#FBBF24',
+  'em ajustes':   '#FF6B6B',
+  'concluído':    '#4ADE80',
 };
 
-const CAMPAIGNS_TABLE = [
-  { name: 'Black Friday', tasks: 12, closed: 12, mode: 'ia', hours: 42, status: 'synced' },
-  { name: 'Natal 2025', tasks: 9, closed: 9, mode: 'hibrido', hours: 31, status: 'synced' },
-  { name: 'Dia das Mães', tasks: 8, closed: 8, mode: 'ia', hours: 24, status: 'synced' },
-  { name: 'Volta às Aulas', tasks: 7, closed: 5, mode: 'hibrido', hours: 18, status: 'reviewed' },
-  { name: 'Páscoa', tasks: 6, closed: 0, mode: '—', hours: 0, status: 'draft' },
-  { name: 'Dia dos Pais', tasks: 6, closed: 0, mode: '—', hours: 0, status: 'draft' },
-];
+// ── Helpers ───────────────────────────────────────────────────────────
+function pct(done: number, total: number) {
+  return total ? Math.round((done / total) * 100) : 0;
+}
 
-// Sparkline simples (SVG mini)
-const SPARKLINE_DATA = [30, 45, 28, 60, 72, 55, 80, 95, 88, 127];
-
-const DONUT_DATA = [
-  { name: 'IA 100%', value: SUMMARY.modeDistribution.ia, color: '#3D7BFF' },
-  { name: 'Híbrido', value: SUMMARY.modeDistribution.hibrido, color: '#6F9BFF' },
-  { name: 'Manual', value: SUMMARY.modeDistribution.manual, color: '#22304A' },
-];
-
-const STATUS_LABELS: Record<string, string> = { draft: 'Rascunho', reviewed: 'Revisado', synced: 'Sincronizado' };
-const STATUS_CLASSES: Record<string, string> = { draft: 'badge-baixa', reviewed: 'badge-media', synced: 'badge-synced' };
-const MODE_LABELS: Record<string, string> = { ia: 'IA 100%', hibrido: 'Híbrido', manual: 'Manual', '—': '—' };
-
-function Sparkline({ data, color = '#3D7BFF' }: { data: number[]; color?: string }) {
-  const max = Math.max(...data);
-  const min = Math.min(...data);
-  const w = 80; const h = 28;
-  const pts = data.map((v, i) => {
-    const x = (i / (data.length - 1)) * w;
-    const y = h - ((v - min) / (max - min || 1)) * h;
-    return `${x},${y}`;
+function Sparkline({ values, color = '#3D7BFF' }: { values: number[]; color?: string }) {
+  if (values.length < 2) return null;
+  const max = Math.max(...values);
+  const min = Math.min(...values);
+  const W = 80, H = 28;
+  const pts = values.map((v, i) => {
+    const x = (i / (values.length - 1)) * W;
+    const y = H - ((v - min) / (max - min || 1)) * H;
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
   }).join(' ');
   return (
-    <svg viewBox={`0 0 ${w} ${h}`} width={w} height={h} style={{ overflow: 'visible' }}>
+    <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} style={{ overflow: 'visible' }}>
       <polyline points={pts} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx={pts.split(' ')[pts.split(' ').length - 1].split(',')[0]} cy={pts.split(' ')[pts.split(' ').length - 1].split(',')[1]} r="2.5" fill={color} />
     </svg>
   );
 }
 
-const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: { value: number }[]; label?: string }) => {
-  if (active && payload?.length) {
+const CTooltip = ({ active, payload, label }: { active?: boolean; payload?: { value: number; name?: string }[]; label?: string }) => {
+  if (!active || !payload?.length) return null;
+  return (
+    <div style={{ background: 'var(--nova-bg-elev)', border: '1px solid var(--nova-border)', borderRadius: '.625rem', padding: '.5rem .75rem', fontSize: '.75rem', color: 'var(--nova-text)' }}>
+      <div style={{ fontWeight: 600, marginBottom: '.25rem' }}>{label}</div>
+      {payload.map((p, i) => <div key={i} style={{ color: 'var(--nova-text-dim)' }}>{p.name}: <b style={{ color: 'var(--nova-text)' }}>{p.value}</b></div>)}
+    </div>
+  );
+};
+
+// ── Componente principal ──────────────────────────────────────────────
+export default function Dashboard() {
+  const [teams, setTeams]   = useState<TeamData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError]   = useState<string | null>(null);
+
+  useEffect(() => {
+    const keys = TEAMS.map(t => t.key);
+    Promise.all(keys.map(k => getListTasks(LIST_IDS[k], 0, true)))
+      .then(results => {
+        setTeams(TEAMS.map((t, i) => ({ ...t, tasks: results[i] })));
+      })
+      .catch(e => setError(e.message))
+      .finally(() => setLoading(false));
+  }, []);
+
+  // ── Agregados ────────────────────────────────────────────────────
+  const allTasks  = teams.flatMap(t => t.tasks);
+  const total     = allTasks.length;
+  const done      = allTasks.filter(t => t.status.type === 'closed').length;
+  const inProg    = allTasks.filter(t => t.status.status === 'em andamento').length;
+  const inReview  = allTasks.filter(t => t.status.status === 'em aprovação').length;
+  const pctDone   = pct(done, total);
+
+  // Distribuição de status para gráfico de pizza
+  const statusCounts: Record<string, number> = {};
+  allTasks.forEach(t => {
+    const s = t.status.status;
+    statusCounts[s] = (statusCounts[s] ?? 0) + 1;
+  });
+  const donutData = Object.entries(statusCounts).map(([name, value]) => ({
+    name, value, color: STATUS_COLOR[name] ?? '#5D6880',
+  })).sort((a, b) => b.value - a.value);
+
+  // Bar chart por time
+  const barData = teams.map(t => ({
+    name: t.label,
+    total:  t.tasks.length,
+    feitas: t.tasks.filter(tk => tk.status.type === 'closed').length,
+    em_andamento: t.tasks.filter(tk => tk.status.status === 'em andamento').length,
+  }));
+
+  // Top assignees
+  const assigneeMap: Record<number, { info: CUAssignee; count: number; done: number }> = {};
+  allTasks.forEach(t => {
+    t.assignees.forEach(a => {
+      if (!assigneeMap[a.id]) assigneeMap[a.id] = { info: a, count: 0, done: 0 };
+      assigneeMap[a.id].count++;
+      if (t.status.type === 'closed') assigneeMap[a.id].done++;
+    });
+  });
+  const topAssignees = Object.values(assigneeMap)
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5);
+
+  // Sparkline data: tasks por time
+  const sparkValues = teams.map(t => t.tasks.length);
+
+  // ── KPI cards ────────────────────────────────────────────────────
+  const kpis = [
+    { label: 'Total de tarefas',   value: total,   sub: `em ${TEAMS.length} listas`, color: '#3D7BFF' },
+    { label: 'Em andamento',       value: inProg,  sub: 'em progresso agora',          color: '#6F9BFF' },
+    { label: 'Em aprovação',       value: inReview, sub: 'aguardando revisão',          color: '#FBBF24' },
+    { label: 'Concluídas',         value: done,    sub: `${pctDone}% do total`,         color: '#4ADE80' },
+  ];
+
+  if (error) {
     return (
-      <div style={{ background: 'var(--nova-bg-elev-2)', border: '1px solid var(--nova-border)', borderRadius: '.625rem', padding: '.625rem .875rem' }}>
-        <div style={{ fontSize: '.75rem', color: 'var(--nova-text-dim)', marginBottom: '.25rem' }}>{label}</div>
-        <div style={{ fontSize: '.9375rem', fontWeight: 700, color: 'var(--nova-blue)' }}>{payload[0].value}h economizadas</div>
+      <div style={{ padding: '2rem' }}>
+        <div style={{ padding: '1.25rem', borderRadius: '.75rem', background: 'rgba(255,107,107,.1)', border: '1px solid rgba(255,107,107,.2)', color: '#FF6B6B' }}>
+          Erro ao carregar dados do ClickUp: {error}
+        </div>
       </div>
     );
   }
-  return null;
-};
-
-export default function Dashboard() {
-  const navigate = useNavigate();
-
-  const kpis = [
-    { label: 'Horas economizadas', value: `${SUMMARY.totalSavedHours}h`, sub: '+12h este mês', color: 'var(--nova-blue)' },
-    { label: 'Tarefas encerradas', value: `${SUMMARY.closedTasks}/${SUMMARY.totalTasks}`, sub: `${Math.round((SUMMARY.closedTasks / SUMMARY.totalTasks) * 100)}% concluídas`, color: 'var(--c-success)' },
-    { label: 'Média por tarefa', value: `${SUMMARY.avgSavedPerTask}h`, sub: 'tempo economizado', color: 'var(--c-info)' },
-    { label: 'Uso de IA', value: `${SUMMARY.modeDistribution.ia}%`, sub: 'das tarefas com IA', color: 'var(--nova-blue)' },
-  ];
 
   return (
-    <div style={{ maxWidth: 1100, margin: '0 auto' }}>
+    <div style={{ maxWidth: 1100, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
 
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
         <div>
-          <h1 style={{ fontSize: '1.375rem', fontWeight: 700, color: 'var(--nova-text)', marginBottom: '.25rem' }}>Dashboard de IA</h1>
-          <p style={{ fontSize: '.875rem', color: 'var(--nova-text-muted)' }}>Métricas de produtividade e uso de IA nas campanhas.</p>
+          <h1 style={{ fontSize: '1.375rem', fontWeight: 700, color: 'var(--nova-text)', marginBottom: '.25rem' }}>Dashboard</h1>
+          <p style={{ fontSize: '.8125rem', color: 'var(--nova-text-muted)' }}>
+            Visão geral ao vivo — dados do ClickUp atualizados em tempo real
+          </p>
         </div>
-        <div style={{ display: 'flex', gap: '.625rem', flexWrap: 'wrap' }}>
-          <div style={{
-            padding: '.375rem .875rem', borderRadius: '.5rem', fontSize: '.75rem', fontWeight: 600,
-            background: 'rgba(251,191,36,.08)', border: '1px solid rgba(251,191,36,.2)', color: 'var(--c-warning)',
-          }}>
-            Modo demonstração
-          </div>
-          <button className="btn-blue" onClick={() => navigate('/')} style={{ justifyContent: 'center' }}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" width="14" height="14">
-              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-            </svg>
-            Nova campanha
-          </button>
-        </div>
+        <a href={`https://app.clickup.com/36941541`} target="_blank" rel="noopener noreferrer"
+          style={{ fontSize: '.75rem', color: '#3D7BFF', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '.25rem', padding: '.4rem .75rem', border: '1px solid rgba(61,123,255,.25)', borderRadius: '.625rem' }}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" width="13" height="13">
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+            <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+          </svg>
+          Abrir ClickUp
+        </a>
       </div>
 
       {/* KPI cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
-        {kpis.map((kpi) => (
-          <div key={kpi.label} className="glass-card" style={{ padding: '1.125rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '.5rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <div>
-                <div style={{ fontSize: '.6875rem', fontWeight: 600, color: 'var(--nova-text-dim)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '.3rem' }}>
-                  {kpi.label}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+        {loading
+          ? [1,2,3,4].map(i => (
+              <div key={i} style={{ height: 100, borderRadius: '1rem', background: 'rgba(255,255,255,.04)', animation: 'pulse 1.5s ease-in-out infinite' }} />
+            ))
+          : kpis.map(kpi => (
+            <div key={kpi.label} className="glass-card" style={{ padding: '1.125rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '.25rem' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+                <div>
+                  <div style={{ fontSize: '2rem', fontWeight: 700, color: kpi.color, lineHeight: 1.1 }}>{kpi.value}</div>
+                  <div style={{ fontSize: '.6875rem', fontWeight: 700, color: 'var(--nova-text-dim)', textTransform: 'uppercase', letterSpacing: '.06em', marginTop: '.25rem' }}>{kpi.label}</div>
                 </div>
-                <div style={{ fontSize: '1.625rem', fontWeight: 700, color: kpi.color, lineHeight: 1.1 }}>
-                  {kpi.value}
-                </div>
-                <div style={{ fontSize: '.75rem', color: 'var(--nova-text-muted)', marginTop: '.25rem' }}>{kpi.sub}</div>
+                <Sparkline values={sparkValues} color={kpi.color} />
               </div>
-              <Sparkline data={SPARKLINE_DATA} color={kpi.color} />
+              <div style={{ fontSize: '.75rem', color: 'var(--nova-text-dim)', marginTop: '.25rem' }}>{kpi.sub}</div>
             </div>
-          </div>
-        ))}
+          ))
+        }
       </div>
 
-      {/* Gráficos — linha 1 */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '1rem', marginBottom: '1rem' }}>
-
-        {/* Barras: horas por campanha */}
-        <div className="glass-card" style={{ padding: '1.25rem' }}>
-          <div style={{ fontSize: '.875rem', fontWeight: 600, color: 'var(--nova-text)', marginBottom: '.25rem' }}>Horas economizadas por campanha</div>
-          <div style={{ fontSize: '.75rem', color: 'var(--nova-text-dim)', marginBottom: '1rem' }}>Total acumulado de tempo salvo com IA</div>
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={SUMMARY.savedByCampaign} margin={{ top: 4, right: 8, left: -16, bottom: 0 }}>
-              <XAxis dataKey="campaignName" tick={{ fill: 'var(--nova-text-dim)', fontSize: 11, fontFamily: 'Sora, sans-serif' }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fill: 'var(--nova-text-dim)', fontSize: 11, fontFamily: 'Sora, sans-serif' }} axisLine={false} tickLine={false} />
-              <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(61,123,255,.06)' }} />
-              <Bar dataKey="savedHours" fill="#3D7BFF" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Donut: modo de produção */}
-        <div className="glass-card" style={{ padding: '1.25rem' }}>
-          <div style={{ fontSize: '.875rem', fontWeight: 600, color: 'var(--nova-text)', marginBottom: '.25rem' }}>Modo de produção</div>
-          <div style={{ fontSize: '.75rem', color: 'var(--nova-text-dim)', marginBottom: '.5rem' }}>Distribuição de tarefas encerradas</div>
-          <ResponsiveContainer width="100%" height={180}>
-            <PieChart>
-              <Pie
-                data={DONUT_DATA}
-                cx="50%" cy="50%"
-                innerRadius={50} outerRadius={78}
-                paddingAngle={3}
-                dataKey="value"
-                strokeWidth={0}
-              >
-                {DONUT_DATA.map((entry, i) => (
-                  <Cell key={i} fill={entry.color} />
-                ))}
-              </Pie>
-              <Legend
-                formatter={(value) => <span style={{ fontSize: '.75rem', color: 'var(--nova-text-muted)', fontFamily: 'Sora, sans-serif' }}>{value}</span>}
-                iconType="circle"
-                iconSize={8}
-              />
-              <Tooltip formatter={(val: number) => [`${val}%`, '']} contentStyle={{ background: 'var(--nova-bg-elev-2)', border: '1px solid var(--nova-border)', borderRadius: '.5rem', fontFamily: 'Sora, sans-serif', fontSize: '.8125rem' }} />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-
-      {/* Cumprimento de prazos */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
-        <div className="glass-card" style={{ padding: '1.125rem 1.25rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <div style={{
-            width: '3rem', height: '3rem', borderRadius: '.875rem', flexShrink: 0,
-            background: 'rgba(74,222,128,.1)', border: '1.5px solid rgba(74,222,128,.25)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="var(--c-success)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" width="20" height="20">
-              <polyline points="20 6 9 17 4 12"/>
-            </svg>
+      {/* Barra geral de progresso */}
+      {!loading && total > 0 && (
+        <div className="glass-card" style={{ padding: '1rem 1.25rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '.625rem', flexWrap: 'wrap', gap: '.5rem' }}>
+            <span style={{ fontSize: '.875rem', fontWeight: 600, color: 'var(--nova-text)' }}>Progresso geral</span>
+            <span style={{ fontSize: '.75rem', color: 'var(--nova-text-dim)' }}>{done} de {total} tarefas concluídas</span>
           </div>
-          <div>
-            <div style={{ fontSize: '1.625rem', fontWeight: 700, color: 'var(--c-success)' }}>{SUMMARY.deadlineCompliance.onTime}%</div>
-            <div style={{ fontSize: '.75rem', fontWeight: 600, color: 'var(--nova-text-muted)' }}>Entregues no prazo</div>
+          <div style={{ height: 10, borderRadius: 5, background: 'rgba(255,255,255,.06)', overflow: 'hidden' }}>
+            <div style={{ width: `${pctDone}%`, height: '100%', background: pctDone === 100 ? '#4ADE80' : '#3D7BFF', borderRadius: 5, transition: 'width .4s ease' }} />
           </div>
-          {/* Mini barra de progresso */}
-          <div style={{ flex: 1, height: 6, borderRadius: 3, background: 'var(--nova-bg-elev-2)', overflow: 'hidden', marginLeft: '.5rem' }}>
-            <div style={{ width: `${SUMMARY.deadlineCompliance.onTime}%`, height: '100%', background: 'var(--c-success)', borderRadius: 3, transition: 'width .8s ease' }} />
-          </div>
-        </div>
-
-        <div className="glass-card" style={{ padding: '1.125rem 1.25rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <div style={{
-            width: '3rem', height: '3rem', borderRadius: '.875rem', flexShrink: 0,
-            background: 'rgba(255,107,107,.1)', border: '1.5px solid rgba(255,107,107,.25)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="var(--c-danger)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" width="20" height="20">
-              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-            </svg>
-          </div>
-          <div>
-            <div style={{ fontSize: '1.625rem', fontWeight: 700, color: 'var(--c-danger)' }}>{SUMMARY.deadlineCompliance.late}%</div>
-            <div style={{ fontSize: '.75rem', fontWeight: 600, color: 'var(--nova-text-muted)' }}>Entregues com atraso</div>
-          </div>
-          <div style={{ flex: 1, height: 6, borderRadius: 3, background: 'var(--nova-bg-elev-2)', overflow: 'hidden', marginLeft: '.5rem' }}>
-            <div style={{ width: `${SUMMARY.deadlineCompliance.late}%`, height: '100%', background: 'var(--c-danger)', borderRadius: 3 }} />
-          </div>
-        </div>
-      </div>
-
-      {/* Tarefas por membro */}
-      <div style={{ marginBottom: '1.5rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap', gap: '.5rem' }}>
-          <div>
-            <div style={{ fontSize: '.875rem', fontWeight: 600, color: 'var(--nova-text)' }}>Tarefas em andamento por membro</div>
-            <div style={{ fontSize: '.75rem', color: 'var(--nova-text-dim)' }}>Sprint atual — visão consolidada</div>
-          </div>
-          <Link to="/sprints" style={{ fontSize: '.75rem', color: 'var(--nova-blue)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '.3rem' }}>
-            Ver todos os sprints
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" width="12" height="12">
-              <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
-            </svg>
-          </Link>
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
-          {MEMBERS.map((member) => {
-            const activeTasks = member.tasks.filter(t => t.status === 'doing' || t.status === 'review');
-            return (
-              <div key={member.name} className="glass-card" style={{ padding: '1.125rem' }}>
-                {/* Header do membro */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '.625rem', marginBottom: '.875rem' }}>
-                  <div style={{
-                    width: '2rem', height: '2rem', borderRadius: '50%', flexShrink: 0,
-                    background: `${member.teamColor}20`, border: `1.5px solid ${member.teamColor}40`,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: '.625rem', fontWeight: 700, color: member.teamColor,
-                  }}>{member.avatar}</div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: '.875rem', fontWeight: 600, color: 'var(--nova-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{member.name}</div>
-                    <Link to={member.teamPath} style={{ fontSize: '.6875rem', color: member.teamColor, textDecoration: 'none', fontWeight: 600 }}>{member.team}</Link>
-                  </div>
-                  <div style={{ fontSize: '.6875rem', fontWeight: 700, color: activeTasks.length > 0 ? 'var(--nova-blue)' : 'var(--nova-text-dim)', background: activeTasks.length > 0 ? 'rgba(61,123,255,.1)' : 'rgba(93,104,128,.1)', padding: '.15rem .5rem', borderRadius: '2rem' }}>
-                    {activeTasks.length} ativas
-                  </div>
-                </div>
-
-                {/* Tarefas */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '.375rem' }}>
-                  {member.tasks.map((task, i) => {
-                    const st = TASK_STATUS[task.status];
-                    return (
-                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '.5rem', padding: '.375rem .5rem', borderRadius: '.5rem', background: 'rgba(255,255,255,.03)', border: '1px solid var(--glass-brd)' }}>
-                        <div style={{ width: 6, height: 6, borderRadius: '50%', background: st.color, flexShrink: 0 }} />
-                        <span style={{ flex: 1, fontSize: '.75rem', color: 'var(--nova-text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{task.name}</span>
-                        <span style={{ fontSize: '.6rem', fontWeight: 600, color: st.color, padding: '.1rem .4rem', borderRadius: '2rem', background: st.bg, flexShrink: 0 }}>{st.label}</span>
-                      </div>
-                    );
-                  })}
-                </div>
+          <div style={{ display: 'flex', gap: '1.5rem', marginTop: '.75rem', flexWrap: 'wrap' }}>
+            {[
+              { label: 'A fazer', count: allTasks.filter(t => t.status.status === 'a fazer').length, color: '#5D6880' },
+              { label: 'Em andamento', count: inProg, color: '#3D7BFF' },
+              { label: 'Em aprovação', count: inReview, color: '#FBBF24' },
+              { label: 'Em ajustes', count: allTasks.filter(t => t.status.status === 'em ajustes').length, color: '#FF6B6B' },
+              { label: 'Concluídas', count: done, color: '#4ADE80' },
+            ].map(s => (
+              <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: '.375rem' }}>
+                <div style={{ width: 8, height: 8, borderRadius: '50%', background: s.color, flexShrink: 0 }} />
+                <span style={{ fontSize: '.75rem', color: 'var(--nova-text-dim)' }}>{s.label}</span>
+                <span style={{ fontSize: '.75rem', fontWeight: 700, color: 'var(--nova-text)' }}>{s.count}</span>
               </div>
-            );
-          })}
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Gráficos */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: '1rem' }}>
+
+        {/* Bar chart: tarefas por time */}
+        <div className="glass-card" style={{ padding: '1.25rem' }}>
+          <div style={{ fontSize: '.875rem', fontWeight: 600, color: 'var(--nova-text)', marginBottom: '1.25rem' }}>Tarefas por lista</div>
+          {loading ? (
+            <div style={{ height: 200, background: 'rgba(255,255,255,.03)', borderRadius: '.75rem', animation: 'pulse 1.5s ease-in-out infinite' }} />
+          ) : (
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={barData} barGap={4}>
+                <XAxis dataKey="name" tick={{ fontSize: 11, fill: 'var(--nova-text-dim)' }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 11, fill: 'var(--nova-text-dim)' }} axisLine={false} tickLine={false} width={24} />
+                <Tooltip content={<CTooltip />} cursor={{ fill: 'rgba(255,255,255,.04)' }} />
+                <Bar dataKey="em_andamento" name="Em andamento" stackId="a" fill="#3D7BFF" radius={[0,0,0,0]} />
+                <Bar dataKey="feitas" name="Concluídas" stackId="a" fill="#4ADE80" radius={[4,4,0,0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+
+        {/* Donut: distribuição de status */}
+        <div className="glass-card" style={{ padding: '1.25rem' }}>
+          <div style={{ fontSize: '.875rem', fontWeight: 600, color: 'var(--nova-text)', marginBottom: '1rem' }}>Por status</div>
+          {loading ? (
+            <div style={{ height: 200, background: 'rgba(255,255,255,.03)', borderRadius: '.75rem', animation: 'pulse 1.5s ease-in-out infinite' }} />
+          ) : (
+            <ResponsiveContainer width="100%" height={200}>
+              <PieChart>
+                <Pie data={donutData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} dataKey="value" paddingAngle={2}>
+                  {donutData.map((d, i) => <Cell key={i} fill={d.color} />)}
+                </Pie>
+                <Tooltip content={<CTooltip />} />
+                <Legend formatter={(v) => <span style={{ fontSize: '.6875rem', color: 'var(--nova-text-dim)' }}>{v}</span>} />
+              </PieChart>
+            </ResponsiveContainer>
+          )}
         </div>
       </div>
 
-      {/* Tabela de campanhas */}
-      <div className="glass-card" style={{ padding: '1.25rem', overflow: 'hidden' }}>
-        <div style={{ fontSize: '.875rem', fontWeight: 600, color: 'var(--nova-text)', marginBottom: '1rem' }}>Campanhas</div>
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '.8125rem' }}>
-            <thead>
-              <tr>
-                {['Campanha', 'Tarefas', 'Progresso', 'Modo principal', 'Horas salvas', 'Status'].map((col) => (
-                  <th key={col} style={{
-                    textAlign: 'left', padding: '.5rem .75rem',
-                    fontSize: '.6875rem', fontWeight: 600, color: 'var(--nova-text-dim)',
-                    textTransform: 'uppercase', letterSpacing: '.06em',
-                    borderBottom: '1px solid var(--nova-border)',
-                  }}>{col}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {CAMPAIGNS_TABLE.map((c, i) => (
-                <tr key={i} style={{ borderBottom: i < CAMPAIGNS_TABLE.length - 1 ? '1px solid var(--glass-brd)' : 'none' }}>
-                  <td style={{ padding: '.625rem .75rem', fontWeight: 600, color: 'var(--nova-text)' }}>{c.name}</td>
-                  <td style={{ padding: '.625rem .75rem', color: 'var(--nova-text-muted)' }}>{c.closed}/{c.tasks}</td>
-                  <td style={{ padding: '.625rem .75rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem' }}>
-                      <div style={{ width: 80, height: 5, borderRadius: 3, background: 'var(--nova-bg-elev-2)', overflow: 'hidden' }}>
-                        <div style={{ width: `${c.tasks > 0 ? (c.closed / c.tasks) * 100 : 0}%`, height: '100%', background: '#3D7BFF', borderRadius: 3 }} />
+      {/* Times: cards rápidos + top assignees */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: '1rem' }}>
+
+        {/* Cards de times */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '.75rem' }}>
+          <div style={{ fontSize: '.6875rem', fontWeight: 700, color: 'var(--nova-text-dim)', textTransform: 'uppercase', letterSpacing: '.07em' }}>Times & Projetos</div>
+          {loading
+            ? [1,2,3,4].map(i => <div key={i} style={{ height: 68, borderRadius: '.75rem', background: 'rgba(255,255,255,.04)', animation: 'pulse 1.5s ease-in-out infinite' }} />)
+            : teams.map(t => {
+                const tDone  = t.tasks.filter(tk => tk.status.type === 'closed').length;
+                const tProg  = pct(tDone, t.tasks.length);
+                const tInP   = t.tasks.filter(tk => tk.status.status === 'em andamento').length;
+                return (
+                  <Link key={t.key} to={t.path} style={{ textDecoration: 'none' }}>
+                    <div style={{
+                      display: 'flex', alignItems: 'center', gap: '1rem',
+                      padding: '.875rem 1rem', borderRadius: '.75rem',
+                      background: 'var(--glass)', border: '1px solid var(--glass-brd)',
+                      transition: 'background .15s', cursor: 'pointer',
+                    }}
+                      onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,.08)')}
+                      onMouseLeave={e => (e.currentTarget.style.background = 'var(--glass)')}>
+                      <div style={{ width: 10, height: 10, borderRadius: '50%', background: t.color, flexShrink: 0 }} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '.375rem' }}>
+                          <span style={{ fontSize: '.875rem', fontWeight: 600, color: 'var(--nova-text)' }}>{t.label}</span>
+                          <span style={{ fontSize: '.75rem', color: 'var(--nova-text-dim)' }}>{tDone}/{t.tasks.length}</span>
+                        </div>
+                        <div style={{ height: 4, borderRadius: 2, background: 'rgba(255,255,255,.06)', overflow: 'hidden' }}>
+                          <div style={{ width: `${tProg}%`, height: '100%', background: t.color, borderRadius: 2, transition: 'width .4s ease' }} />
+                        </div>
+                        <div style={{ fontSize: '.6875rem', color: 'var(--nova-text-dim)', marginTop: '.375rem' }}>
+                          {tInP > 0 && `${tInP} em andamento · `}{tProg}% concluído
+                        </div>
                       </div>
-                      <span style={{ fontSize: '.6875rem', color: 'var(--nova-text-dim)' }}>
-                        {c.tasks > 0 ? Math.round((c.closed / c.tasks) * 100) : 0}%
+                      <svg viewBox="0 0 24 24" fill="none" stroke="var(--nova-text-dim)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" width="14" height="14">
+                        <polyline points="9 18 15 12 9 6"/>
+                      </svg>
+                    </div>
+                  </Link>
+                );
+              })
+          }
+        </div>
+
+        {/* Top responsáveis */}
+        <div className="glass-card" style={{ padding: '1.25rem' }}>
+          <div style={{ fontSize: '.875rem', fontWeight: 600, color: 'var(--nova-text)', marginBottom: '1rem' }}>Top responsáveis</div>
+          {loading ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '.5rem' }}>
+              {[1,2,3,4,5].map(i => <div key={i} style={{ height: 40, borderRadius: '.625rem', background: 'rgba(255,255,255,.04)', animation: 'pulse 1.5s ease-in-out infinite' }} />)}
+            </div>
+          ) : topAssignees.length === 0 ? (
+            <div style={{ fontSize: '.8125rem', color: 'var(--nova-text-dim)', textAlign: 'center', padding: '1rem' }}>
+              Nenhum responsável encontrado.
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '.5rem' }}>
+              {topAssignees.map(({ info: a, count, done: d }) => (
+                <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: '.625rem' }}>
+                  <div style={{
+                    width: 30, height: 30, borderRadius: '50%', flexShrink: 0,
+                    background: a.profilePicture ? `url(${a.profilePicture}) center/cover` : a.color,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '.5625rem', fontWeight: 700, color: '#fff', border: '1.5px solid var(--nova-bg-elev)',
+                  }}>
+                    {!a.profilePicture && a.initials}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: '.8125rem', fontWeight: 500, color: 'var(--nova-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {a.username}
+                    </div>
+                    <div style={{ height: 3, borderRadius: 2, background: 'rgba(255,255,255,.06)', overflow: 'hidden', marginTop: '.25rem' }}>
+                      <div style={{ width: `${pct(d, count)}%`, height: '100%', background: '#3D7BFF', borderRadius: 2 }} />
+                    </div>
+                  </div>
+                  <span style={{ fontSize: '.6875rem', color: 'var(--nova-text-dim)', flexShrink: 0 }}>{count}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Tarefas urgentes */}
+      {!loading && (() => {
+        const urgent = allTasks
+          .filter(t => t.priority?.priority === 'urgent' || t.priority?.priority === 'high')
+          .filter(t => t.status.type !== 'closed')
+          .slice(0, 6);
+        if (!urgent.length) return null;
+        return (
+          <div className="glass-card" style={{ padding: '1.25rem' }}>
+            <div style={{ fontSize: '.875rem', fontWeight: 600, color: 'var(--nova-text)', marginBottom: '1rem' }}>
+              Prioridade alta
+              <span style={{ marginLeft: '.5rem', fontSize: '.6875rem', fontWeight: 600, color: '#FF6B6B', background: 'rgba(255,107,107,.1)', padding: '.15rem .5rem', borderRadius: '2rem' }}>
+                {urgent.length}
+              </span>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '.375rem' }}>
+              {urgent.map(t => {
+                const teamColor = teams.find(tm => tm.tasks.some(tk => tk.id === t.id))?.color ?? '#3D7BFF';
+                return (
+                  <a key={t.id} href={t.url} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
+                    <div style={{
+                      display: 'flex', alignItems: 'center', gap: '.75rem', flexWrap: 'wrap',
+                      padding: '.625rem .875rem', borderRadius: '.625rem',
+                      background: 'rgba(255,107,107,.04)', border: '1px solid rgba(255,107,107,.12)',
+                      transition: 'background .15s', cursor: 'pointer',
+                    }}
+                      onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,107,107,.08)')}
+                      onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,107,107,.04)')}>
+                      <div style={{ width: 8, height: 8, borderRadius: '50%', background: teamColor, flexShrink: 0 }} />
+                      <span style={{ flex: 1, fontSize: '.8125rem', fontWeight: 500, color: 'var(--nova-text)', minWidth: 140 }}>{t.name}</span>
+                      <div style={{ display: 'flex', alignItems: 'center' }}>
+                        {t.assignees.slice(0, 2).map((a, i) => (
+                          <div key={a.id} title={a.username} style={{
+                            width: 20, height: 20, borderRadius: '50%', flexShrink: 0,
+                            background: a.profilePicture ? `url(${a.profilePicture}) center/cover` : a.color,
+                            border: '1.5px solid var(--nova-bg-elev)', marginLeft: i > 0 ? '-5px' : 0,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: '.45rem', fontWeight: 700, color: '#fff',
+                          }}>
+                            {!a.profilePicture && a.initials}
+                          </div>
+                        ))}
+                      </div>
+                      <span style={{ fontSize: '.625rem', fontWeight: 700, color: '#FF6B6B', padding: '.15rem .5rem', borderRadius: '2rem', background: 'rgba(255,107,107,.12)', flexShrink: 0 }}>
+                        {t.priority?.priority === 'urgent' ? 'Urgente' : 'Alta'}
+                      </span>
+                      <span style={{ fontSize: '.625rem', fontWeight: 600, color: '#5D6880', padding: '.15rem .5rem', borderRadius: '2rem', background: 'rgba(93,104,128,.12)', flexShrink: 0 }}>
+                        {t.status.status}
                       </span>
                     </div>
-                  </td>
-                  <td style={{ padding: '.625rem .75rem', color: 'var(--nova-text-muted)' }}>{MODE_LABELS[c.mode]}</td>
-                  <td style={{ padding: '.625rem .75rem', fontWeight: 600, color: c.hours > 0 ? 'var(--nova-blue)' : 'var(--nova-text-dim)' }}>
-                    {c.hours > 0 ? `${c.hours}h` : '—'}
-                  </td>
-                  <td style={{ padding: '.625rem .75rem' }}>
-                    <span className={`badge ${STATUS_CLASSES[c.status]}`}>{STATUS_LABELS[c.status]}</span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+                  </a>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

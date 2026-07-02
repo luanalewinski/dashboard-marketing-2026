@@ -88,9 +88,9 @@ async function cuFetch(path: string, method = 'GET', body?: object) {
 }
 
 // ── Buscar tarefas de uma lista ──────────────────────────────────────
-export async function getListTasks(listId: string, page = 0): Promise<CUTask[]> {
+export async function getListTasks(listId: string, page = 0, includeClosed = false): Promise<CUTask[]> {
   const data = await cuFetch(
-    `/list/${listId}/task?page=${page}&subtasks=false&order_by=updated&reverse=true&include_closed=false`
+    `/list/${listId}/task?page=${page}&subtasks=false&order_by=updated&reverse=true&include_closed=${includeClosed}`
   );
   return data.tasks ?? [];
 }

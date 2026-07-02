@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
+import { getListTasks, CUTask, getStatusStyle } from '../../lib/clickup';
 
 // ── Tipos ─────────────────────────────────────────────────────────────
 interface ChecklistItem {
@@ -24,6 +25,7 @@ interface Edicao {
   year: number;
   status: 'planejamento' | 'em_andamento' | 'concluido';
   notes: string | null;
+  clickup_list_id: string | null;
   checklist: ChecklistItem[];
   links: EventoLink[];
 }
@@ -78,6 +80,10 @@ export default function EventosList() {
   const [loading, setLoading]   = useState(true);
   const [search, setSearch]     = useState('');
 
+  // ClickUp tasks para edição com clickup_list_id
+  const [cuTasks, setCuTasks]   = useState<CUTask[]>([]);
+  const [cuLoading, setCuLoading] = useState(false);
+
   const activeEvento = eventId ? (eventos.find(e => e.id === eventId) ?? eventos[0]) : eventos[0];
   const activeYear   = year ? parseInt(year) : activeEvento?.editions[0]?.year;
   const activeEdicao = activeEvento?.editions.find(e => e.year === activeYear) ?? activeEvento?.editions[0] ?? null;
@@ -99,7 +105,7 @@ export default function EventosList() {
   const [novoLinkLabel, setNovoLinkLabel] = useState('');
   const [novoLinkUrl, setNovoLinkUrl]     = useState('');
 
-  // ── Carregar dados ────────────────────────────────────────────────
+  // ── Carregar dados Supabase ───────────────────────────────────────
   const load = useCallback(async () => {
     setLoading(true);
     const { data: evs, error } = await supabase
@@ -107,7 +113,7 @@ export default function EventosList() {
       .select(`
         id, name, description, category, is_recurring,
         evento_edicoes (
-          id, evento_id, year, status, notes,
+          id, evento_id, year, status, notes, clickup_list_id,
           evento_checklist_items ( id, name, done, category, order_index ),
           evento_links            ( id, type, label, url )
         )
@@ -122,6 +128,7 @@ export default function EventosList() {
         .sort((a: any, b: any) => b.year - a.year)
         .map((ed: any) => ({
           ...ed,
+          clickup_list_id: ed.clickup_list_id ?? null,
           checklist: (ed.evento_checklist_items ?? []).sort((a: any, b: any) => a.order_index - b.order_index),
           links:     ed.evento_links ?? [],
         })),
@@ -132,6 +139,16 @@ export default function EventosList() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  // ── Carregar tarefas ClickUp quando edição tem lista vinculada ────
+  useEffect(() => {
+    if (!activeEdicao?.clickup_list_id) { setCuTasks([]); return; }
+    setCuLoading(true);
+    getListTasks(activeEdicao.clickup_list_id, 0, true)
+      .then(setCuTasks)
+      .catch(console.error)
+      .finally(() => setCuLoading(false));
+  }, [activeEdicao?.clickup_list_id]);
 
   // ── CRUD Evento ───────────────────────────────────────────────────
   async function criarEvento() {
@@ -166,9 +183,9 @@ export default function EventosList() {
     return data;
   }
 
-  // ── CRUD Checklist ────────────────────────────────────────────────
+  // ── CRUD Checklist (manual — apenas edições sem ClickUp) ─────────
   async function adicionarItem() {
-    if (!activeEdicao || !novoItem.trim()) return;
+    if (!activeEdicao || !novoItem.trim() || activeEdicao.clickup_list_id) return;
     const nextOrder = activeEdicao.checklist.length;
     const { error } = await supabase
       .from('evento_checklist_items')
@@ -220,11 +237,19 @@ export default function EventosList() {
     await load();
   }
 
-  // ── Render ────────────────────────────────────────────────────────
-  const filtered  = eventos.filter(e => e.name.toLowerCase().includes(search.toLowerCase()));
-  const progresso = activeEdicao ? pct(activeEdicao.checklist) : 0;
-  const feitos    = activeEdicao?.checklist.filter(i => i.done).length ?? 0;
-  const pendentes = activeEdicao?.checklist.filter(i => !i.done).length ?? 0;
+  // ── Calcular progresso ────────────────────────────────────────────
+  const isClickUp  = !!activeEdicao?.clickup_list_id;
+  const cuDone     = cuTasks.filter(t => t.status.type === 'closed').length;
+  const progresso  = isClickUp
+    ? (cuTasks.length ? Math.round(cuDone / cuTasks.length * 100) : 0)
+    : pct(activeEdicao?.checklist ?? []);
+  const feitos     = isClickUp ? cuDone : (activeEdicao?.checklist.filter(i => i.done).length ?? 0);
+  const pendentes  = isClickUp
+    ? cuTasks.filter(t => t.status.type !== 'closed').length
+    : (activeEdicao?.checklist.filter(i => !i.done).length ?? 0);
+  const totalItems = isClickUp ? cuTasks.length : (activeEdicao?.checklist.length ?? 0);
+
+  const filtered = eventos.filter(e => e.name.toLowerCase().includes(search.toLowerCase()));
 
   return (
     <div style={{ display: 'flex', gap: '1rem', height: 'calc(100vh - 5.5rem)', minHeight: 0 }}>
@@ -262,6 +287,7 @@ export default function EventosList() {
             const last  = ev.editions[0];
             const active = activeEvento?.id === ev.id;
             const sCfg  = last ? STATUS_CFG[last.status] : null;
+            const hasClickUp = ev.editions.some(e => e.clickup_list_id);
             return (
               <button key={ev.id} onClick={() => navigate(`/eventos/${ev.id}`)} style={{
                 display: 'flex', flexDirection: 'column', gap: '.25rem',
@@ -273,11 +299,18 @@ export default function EventosList() {
                   <span style={{ fontSize: '.8125rem', fontWeight: 600, color: active ? '#3D7BFF' : 'var(--nova-text)' }}>
                     {ev.name}
                   </span>
-                  {ev.is_recurring && (
-                    <span style={{ fontSize: '.5625rem', fontWeight: 700, color: 'var(--nova-text-dim)', background: 'rgba(93,104,128,.15)', padding: '.1rem .35rem', borderRadius: '2rem', textTransform: 'uppercase', letterSpacing: '.05em', flexShrink: 0 }}>
-                      Anual
-                    </span>
-                  )}
+                  <div style={{ display: 'flex', gap: '.25rem', flexShrink: 0 }}>
+                    {hasClickUp && (
+                      <span style={{ fontSize: '.5rem', fontWeight: 700, color: '#3D7BFF', background: 'rgba(61,123,255,.15)', padding: '.1rem .3rem', borderRadius: '2rem', textTransform: 'uppercase', letterSpacing: '.04em' }}>
+                        CU
+                      </span>
+                    )}
+                    {ev.is_recurring && (
+                      <span style={{ fontSize: '.5625rem', fontWeight: 700, color: 'var(--nova-text-dim)', background: 'rgba(93,104,128,.15)', padding: '.1rem .35rem', borderRadius: '2rem', textTransform: 'uppercase', letterSpacing: '.05em' }}>
+                        Anual
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '.375rem' }}>
                   <span style={{ fontSize: '.6875rem', color: 'var(--nova-text-dim)' }}>
@@ -356,7 +389,10 @@ export default function EventosList() {
                               {ed.status === 'concluido' ? '✓' : String(ed.year).slice(2)}
                             </div>
                             <span style={{ fontSize: '.625rem', fontWeight: 600, color: sel ? '#3D7BFF' : 'var(--nova-text-dim)' }}>{ed.year}</span>
-                            {ed.checklist.length > 0 && <span style={{ fontSize: '.5625rem', color: 'var(--nova-text-dim)' }}>{p}%</span>}
+                            {ed.clickup_list_id
+                              ? <span style={{ fontSize: '.5rem', color: '#3D7BFF', fontWeight: 700 }}>ClickUp</span>
+                              : ed.checklist.length > 0 && <span style={{ fontSize: '.5625rem', color: 'var(--nova-text-dim)' }}>{p}%</span>
+                            }
                           </button>
                           {i < arr.length - 1 && <div style={{ width: 32, height: 2, background: 'var(--nova-border)', flexShrink: 0 }} />}
                         </div>
@@ -370,8 +406,8 @@ export default function EventosList() {
                     {/* KPI cards */}
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
                       {[
-                        { label: 'Checklist',      value: `${progresso}%`, color: progresso === 100 ? '#4ADE80' : '#3D7BFF' },
-                        { label: 'Itens pendentes', value: pendentes,       color: pendentes > 0 ? '#FBBF24' : '#4ADE80' },
+                        { label: 'Checklist',       value: `${progresso}%`,  color: progresso === 100 ? '#4ADE80' : '#3D7BFF' },
+                        { label: 'Itens pendentes', value: pendentes,         color: pendentes > 0 ? '#FBBF24' : '#4ADE80' },
                         { label: 'Links',           value: activeEdicao.links.length, color: '#6F9BFF' },
                       ].map(kpi => (
                         <div key={kpi.label} className="glass-card" style={{ padding: '1rem 1.125rem' }}>
@@ -391,8 +427,13 @@ export default function EventosList() {
                           <span style={{ fontSize: '.6875rem', fontWeight: 600, padding: '.2rem .625rem', borderRadius: '2rem', color: STATUS_CFG[activeEdicao.status].color, background: STATUS_CFG[activeEdicao.status].bg }}>
                             {STATUS_CFG[activeEdicao.status].label}
                           </span>
+                          {isClickUp && (
+                            <span style={{ fontSize: '.625rem', fontWeight: 700, color: '#3D7BFF', background: 'rgba(61,123,255,.12)', padding: '.15rem .5rem', borderRadius: '2rem' }}>
+                              ao vivo do ClickUp
+                            </span>
+                          )}
                         </div>
-                        <span style={{ fontSize: '.75rem', color: 'var(--nova-text-dim)' }}>{feitos} de {activeEdicao.checklist.length} itens</span>
+                        <span style={{ fontSize: '.75rem', color: 'var(--nova-text-dim)' }}>{feitos} de {totalItems} itens</span>
                       </div>
                       <div style={{ height: 8, borderRadius: 4, background: 'rgba(255,255,255,.06)', overflow: 'hidden' }}>
                         <div style={{ width: `${progresso}%`, height: '100%', background: progresso === 100 ? '#4ADE80' : '#3D7BFF', borderRadius: 4, transition: 'width .4s ease' }} />
@@ -402,66 +443,141 @@ export default function EventosList() {
                     {/* Checklist */}
                     <div className="glass-card" style={{ padding: '1.25rem' }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap', gap: '.5rem' }}>
-                        <span style={{ fontSize: '.875rem', fontWeight: 600, color: 'var(--nova-text)' }}>Checklist</span>
-                        {activeEdicao.checklist.length === 0 && activeEvento.editions.length > 1 && (
-                          <button className="btn-ghost" onClick={copiarChecklist} style={{ fontSize: '.75rem', display: 'flex', alignItems: 'center', gap: '.375rem' }}>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" width="13" height="13">
-                              <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem' }}>
+                          <span style={{ fontSize: '.875rem', fontWeight: 600, color: 'var(--nova-text)' }}>Checklist</span>
+                          {isClickUp && (
+                            <span style={{ fontSize: '.625rem', fontWeight: 700, color: '#3D7BFF', background: 'rgba(61,123,255,.1)', padding: '.15rem .5rem', borderRadius: '2rem', border: '1px solid rgba(61,123,255,.2)' }}>
+                              ClickUp
+                            </span>
+                          )}
+                        </div>
+                        {isClickUp ? (
+                          <a href={`https://app.clickup.com/36941541/v/l/${activeEdicao.clickup_list_id}`}
+                            target="_blank" rel="noopener noreferrer"
+                            style={{ fontSize: '.75rem', color: '#3D7BFF', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '.25rem' }}>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" width="12" height="12">
+                              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                              <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
                             </svg>
-                            Copiar do ano anterior
-                          </button>
+                            Gerenciar no ClickUp
+                          </a>
+                        ) : (
+                          activeEdicao.checklist.length === 0 && activeEvento.editions.length > 1 && (
+                            <button className="btn-ghost" onClick={copiarChecklist} style={{ fontSize: '.75rem', display: 'flex', alignItems: 'center', gap: '.375rem' }}>
+                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" width="13" height="13">
+                                <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                              </svg>
+                              Copiar do ano anterior
+                            </button>
+                          )
                         )}
                       </div>
 
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '.375rem', marginBottom: '1rem' }}>
-                        {activeEdicao.checklist.length === 0 && (
-                          <div style={{ textAlign: 'center', padding: '1.5rem', color: 'var(--nova-text-dim)', fontSize: '.8125rem' }}>
-                            Nenhum item ainda. Adicione abaixo ou copie do ano anterior.
+                      {/* Modo ClickUp: tarefas ao vivo */}
+                      {isClickUp ? (
+                        cuLoading ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '.375rem' }}>
+                            {[1,2,3,4,5].map(i => (
+                              <div key={i} style={{ height: 40, borderRadius: '.625rem', background: 'rgba(255,255,255,.04)', animation: 'pulse 1.5s ease-in-out infinite' }} />
+                            ))}
                           </div>
-                        )}
-                        {activeEdicao.checklist.map(item => {
-                          const cat = CAT_CFG[item.category] ?? CAT_CFG.outro;
-                          return (
-                            <div key={item.id} style={{
-                              display: 'flex', alignItems: 'center', gap: '.625rem',
-                              padding: '.5rem .75rem', borderRadius: '.625rem',
-                              background: item.done ? 'rgba(74,222,128,.04)' : 'rgba(255,255,255,.03)',
-                              border: `1px solid ${item.done ? 'rgba(74,222,128,.15)' : 'rgba(255,255,255,.06)'}`,
-                            }}>
-                              <button onClick={() => toggleItem(item)} style={{
-                                width: 18, height: 18, borderRadius: 4, flexShrink: 0, cursor: 'pointer',
-                                background: item.done ? '#4ADE80' : 'transparent',
-                                border: `2px solid ${item.done ? '#4ADE80' : 'var(--nova-border)'}`,
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              }}>
-                                {item.done && <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" width="10" height="10"><polyline points="20 6 9 17 4 12"/></svg>}
-                              </button>
-                              <span style={{ flex: 1, fontSize: '.8125rem', color: item.done ? 'var(--nova-text-dim)' : 'var(--nova-text)', textDecoration: item.done ? 'line-through' : 'none' }}>
-                                {item.name}
-                              </span>
-                              <span style={{ fontSize: '.625rem', fontWeight: 600, color: cat.color, padding: '.1rem .45rem', borderRadius: '2rem', background: `${cat.color}18`, border: `1px solid ${cat.color}30`, flexShrink: 0 }}>
-                                {cat.label}
-                              </span>
-                              <button onClick={() => removerItem(item.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--nova-text-dim)', display: 'flex', padding: '.1rem', flexShrink: 0 }}>
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" width="13" height="13">
-                                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                                </svg>
-                              </button>
-                            </div>
-                          );
-                        })}
-                      </div>
+                        ) : cuTasks.length === 0 ? (
+                          <div style={{ textAlign: 'center', padding: '1.5rem', color: 'var(--nova-text-dim)', fontSize: '.8125rem' }}>
+                            Nenhuma tarefa encontrada nessa lista do ClickUp.
+                          </div>
+                        ) : (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '.375rem' }}>
+                            {cuTasks.map(task => {
+                              const done = task.status.type === 'closed';
+                              const st   = getStatusStyle(task);
+                              return (
+                                <div key={task.id} style={{
+                                  display: 'flex', alignItems: 'center', gap: '.625rem',
+                                  padding: '.5rem .75rem', borderRadius: '.625rem',
+                                  background: done ? 'rgba(74,222,128,.04)' : 'rgba(255,255,255,.03)',
+                                  border: `1px solid ${done ? 'rgba(74,222,128,.15)' : 'rgba(255,255,255,.06)'}`,
+                                }}>
+                                  <div style={{
+                                    width: 18, height: 18, borderRadius: 4, flexShrink: 0,
+                                    background: done ? '#4ADE80' : 'transparent',
+                                    border: `2px solid ${done ? '#4ADE80' : 'var(--nova-border)'}`,
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                  }}>
+                                    {done && <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" width="10" height="10"><polyline points="20 6 9 17 4 12"/></svg>}
+                                  </div>
+                                  <span style={{ flex: 1, fontSize: '.8125rem', color: done ? 'var(--nova-text-dim)' : 'var(--nova-text)', textDecoration: done ? 'line-through' : 'none' }}>
+                                    {task.name}
+                                  </span>
+                                  <span style={{ fontSize: '.625rem', fontWeight: 600, color: st.color, padding: '.1rem .45rem', borderRadius: '2rem', background: st.bg, flexShrink: 0, whiteSpace: 'nowrap' }}>
+                                    {st.label}
+                                  </span>
+                                  <a href={task.url} target="_blank" rel="noopener noreferrer"
+                                    style={{ color: '#3D7BFF', display: 'flex', flexShrink: 0 }}
+                                    title="Abrir no ClickUp">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" width="13" height="13">
+                                      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                                      <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+                                    </svg>
+                                  </a>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )
+                      ) : (
+                        /* Modo manual: checklist Supabase */
+                        <>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '.375rem', marginBottom: '1rem' }}>
+                            {activeEdicao.checklist.length === 0 && (
+                              <div style={{ textAlign: 'center', padding: '1.5rem', color: 'var(--nova-text-dim)', fontSize: '.8125rem' }}>
+                                Nenhum item ainda. Adicione abaixo ou copie do ano anterior.
+                              </div>
+                            )}
+                            {activeEdicao.checklist.map(item => {
+                              const cat = CAT_CFG[item.category] ?? CAT_CFG.outro;
+                              return (
+                                <div key={item.id} style={{
+                                  display: 'flex', alignItems: 'center', gap: '.625rem',
+                                  padding: '.5rem .75rem', borderRadius: '.625rem',
+                                  background: item.done ? 'rgba(74,222,128,.04)' : 'rgba(255,255,255,.03)',
+                                  border: `1px solid ${item.done ? 'rgba(74,222,128,.15)' : 'rgba(255,255,255,.06)'}`,
+                                }}>
+                                  <button onClick={() => toggleItem(item)} style={{
+                                    width: 18, height: 18, borderRadius: 4, flexShrink: 0, cursor: 'pointer',
+                                    background: item.done ? '#4ADE80' : 'transparent',
+                                    border: `2px solid ${item.done ? '#4ADE80' : 'var(--nova-border)'}`,
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                  }}>
+                                    {item.done && <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" width="10" height="10"><polyline points="20 6 9 17 4 12"/></svg>}
+                                  </button>
+                                  <span style={{ flex: 1, fontSize: '.8125rem', color: item.done ? 'var(--nova-text-dim)' : 'var(--nova-text)', textDecoration: item.done ? 'line-through' : 'none' }}>
+                                    {item.name}
+                                  </span>
+                                  <span style={{ fontSize: '.625rem', fontWeight: 600, color: cat.color, padding: '.1rem .45rem', borderRadius: '2rem', background: `${cat.color}18`, border: `1px solid ${cat.color}30`, flexShrink: 0 }}>
+                                    {cat.label}
+                                  </span>
+                                  <button onClick={() => removerItem(item.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--nova-text-dim)', display: 'flex', padding: '.1rem', flexShrink: 0 }}>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" width="13" height="13">
+                                      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                                    </svg>
+                                  </button>
+                                </div>
+                              );
+                            })}
+                          </div>
 
-                      <div style={{ display: 'flex', gap: '.5rem', flexWrap: 'wrap' }}>
-                        <input className="nova-input" placeholder="Novo item..." value={novoItem}
-                          onChange={e => setNovoItem(e.target.value)}
-                          onKeyDown={e => e.key === 'Enter' && adicionarItem()}
-                          style={{ flex: 1, minWidth: 140, fontSize: '.8125rem' }} />
-                        <select className="nova-input" value={novoItemCat} onChange={e => setNovoItemCat(e.target.value)} style={{ width: 'auto', fontSize: '.8125rem' }}>
-                          {CATEGORIES.map(c => <option key={c} value={c}>{CAT_CFG[c]?.label ?? c}</option>)}
-                        </select>
-                        <button className="btn-primary" onClick={adicionarItem} disabled={!novoItem.trim()}>Adicionar</button>
-                      </div>
+                          <div style={{ display: 'flex', gap: '.5rem', flexWrap: 'wrap' }}>
+                            <input className="nova-input" placeholder="Novo item..." value={novoItem}
+                              onChange={e => setNovoItem(e.target.value)}
+                              onKeyDown={e => e.key === 'Enter' && adicionarItem()}
+                              style={{ flex: 1, minWidth: 140, fontSize: '.8125rem' }} />
+                            <select className="nova-input" value={novoItemCat} onChange={e => setNovoItemCat(e.target.value)} style={{ width: 'auto', fontSize: '.8125rem' }}>
+                              {CATEGORIES.map(c => <option key={c} value={c}>{CAT_CFG[c]?.label ?? c}</option>)}
+                            </select>
+                            <button className="btn-primary" onClick={adicionarItem} disabled={!novoItem.trim()}>Adicionar</button>
+                          </div>
+                        </>
+                      )}
                     </div>
 
                     {/* Links */}

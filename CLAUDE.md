@@ -422,7 +422,141 @@ Deve retornar:
 
 ---
 
-## 10. Regras de segurança
+## 10. Módulo de Eventos — spec completa
+
+### Contexto
+A equipe realiza eventos recorrentes (ex: Missão Coordenação, Convenção de Vendas) todo ano. Hoje os materiais ficam espalhados — Drive, Figma, formulários — sem histórico unificado. O módulo centraliza tudo: histórico por edição, checklist com barra de progresso e links agregados.
+
+### Rotas frontend novas (adicionar em App.tsx)
+```
+/eventos                         → EventosList   (lista + detalhe lado a lado)
+/eventos/:eventId                → EventosList   (mesmo componente, evento selecionado)
+/eventos/:eventId/:year          → EventosList   (edição específica selecionada)
+```
+
+### Arquivos a criar
+```
+frontend/src/pages/eventos/
+  EventosList.tsx        ← layout de duas colunas: lista à esquerda + detalhe à direita
+  
+backend/src/routes/
+  eventos.ts             ← CRUD de eventos, edições, checklist, links
+
+backend/src/prisma/
+  schema.prisma          ← adicionar 4 novos models (ver abaixo)
+```
+
+### Modelos Prisma a ADICIONAR (não remover os existentes)
+```prisma
+model Evento {
+  id          String         @id @default(cuid())
+  name        String
+  description String?
+  category    String?        // "institucional" | "treinamento" | "comercial" | "outro"
+  isRecurring Boolean        @default(true)
+  createdAt   DateTime       @default(now())
+  editions    EventoEdicao[]
+}
+
+model EventoEdicao {
+  id            String               @id @default(cuid())
+  eventoId      String
+  evento        Evento               @relation(fields: [eventoId], references: [id])
+  year          Int
+  status        String               @default("planejamento") // planejamento | em_andamento | concluido
+  notes         String?
+  clickupListId String?
+  createdAt     DateTime             @default(now())
+  checklist     EventoChecklistItem[]
+  links         EventoLink[]
+
+  @@unique([eventoId, year])
+}
+
+model EventoChecklistItem {
+  id        String       @id @default(cuid())
+  edicaoId  String
+  edicao    EventoEdicao @relation(fields: [edicaoId], references: [id])
+  name      String
+  done      Boolean      @default(false)
+  category  String?      // "design" | "copy" | "logistica" | "aprovacao" | "outro"
+  order     Int          @default(0)
+}
+
+model EventoLink {
+  id       String       @id @default(cuid())
+  edicaoId String
+  edicao   EventoEdicao @relation(fields: [edicaoId], references: [id])
+  type     String       // "drive" | "figma" | "form" | "site" | "social" | "outro"
+  label    String
+  url      String
+}
+```
+
+### Endpoints backend — `backend/src/routes/eventos.ts`
+
+| Método | Rota | Descrição |
+|---|---|---|
+| GET | `/api/eventos` | Listar todos os eventos com contagem de edições |
+| POST | `/api/eventos` | Criar evento |
+| GET | `/api/eventos/:id` | Detalhe do evento com todas as edições |
+| GET | `/api/eventos/:id/:year` | Edição específica com checklist + links |
+| POST | `/api/eventos/:id/edicoes` | Criar nova edição (body: `{ year }`) |
+| PATCH | `/api/eventos/edicoes/:edicaoId` | Atualizar status/notes da edição |
+| POST | `/api/eventos/edicoes/:edicaoId/checklist` | Adicionar item ao checklist |
+| PATCH | `/api/eventos/checklist/:itemId` | Marcar done/undone ou editar nome |
+| DELETE | `/api/eventos/checklist/:itemId` | Remover item |
+| POST | `/api/eventos/edicoes/:edicaoId/links` | Adicionar link (body: `{ type, label, url }`) |
+| DELETE | `/api/eventos/links/:linkId` | Remover link |
+| POST | `/api/eventos/edicoes/:edicaoId/copiar-checklist/:fromYear` | Copiar checklist de edição anterior (todos os itens com done=false) |
+
+### Integração com ClickUp (opcional por edição)
+- Endpoint: `POST /api/eventos/edicoes/:edicaoId/sync-clickup`
+- Cria uma Lista no ClickUp dentro do `CLICKUP_SPACE_ID` com nome `"{nomeEvento} {year}"`
+- Cria uma tarefa por item do checklist
+- Salva `clickupListId` na edição
+- Mesma lógica de tratamento de erros dos outros endpoints de ClickUp
+
+### Frontend — `EventosList.tsx`
+Layout de duas colunas (igual ao protótipo aprovado):
+- **Coluna esquerda (260px):** lista de eventos com badge "Anual"/"Único", busca, botão "Novo Evento"
+- **Coluna direita:** detalhe do evento selecionado com:
+  1. **Timeline horizontal** de edições (anos) — clicável para trocar de edição
+     - Ano concluído: círculo verde com ✓
+     - Ano ativo/atual: círculo azul com o ano
+     - Ano futuro: círculo cinza
+  2. **3 KPI cards** (% checklist concluído, itens pendentes, links cadastrados)
+  3. **Checklist com barra de progresso** — itens clicáveis para marcar done/undone, badge por categoria (Design/Copy/Logística/Aprovação), botão para adicionar item
+  4. **Grid de links** — cards com ícone por tipo (Drive=G verde, Figma=F azul, Form=F info, Site/Social=S amarelo), link externo, botão adicionar
+  5. **Botão "Copiar checklist do ano anterior"** — aparece quando a edição não tem itens ainda
+
+### Design
+Seguir exatamente o Nova Design System (seção 7 deste arquivo). O protótipo visual foi aprovado pelo usuário — replicar fielmente a estrutura de duas colunas, as cores dos badges de categoria e o layout dos cards de link.
+
+---
+
+## 11. Estado atual dos arquivos (atualizado)
+
+O Claude Code (ou o usuário via linter) já modificou os seguintes arquivos além do que foi gerado nas Fases 1–3. **Não reverter essas mudanças:**
+
+- `frontend/src/App.tsx` — novas rotas: `/sprints`, `/time/social`, `/time/benchmarking`, `/time/atendimento`, `/time/design`
+- `frontend/src/components/Layout.tsx` — sidebar expandida com seções "Planejamento" (Sprints) e "Times" (Social, Benchmarking, Atendimento, Design) com dots coloridos
+- `frontend/src/pages/BriefCapture.tsx` — versão mock (navega para `/review/mock-campaign-01` sem chamar o backend) — **manter assim até o backend estar rodando**
+- `frontend/src/pages/TaskReview.tsx` — versão mock com dados da Black Friday — **manter assim até o backend estar rodando**
+- `frontend/src/pages/Dashboard.tsx`, `TaskClose.tsx`, `SyncConfirmation.tsx` — modificados pelo Claude Code, verificar conteúdo atual antes de alterar
+
+Páginas stub que ainda precisam ser criadas (o App.tsx já as importa e vai quebrar se não existirem):
+- `frontend/src/pages/Sprints.tsx`
+- `frontend/src/pages/teams/Social.tsx`
+- `frontend/src/pages/teams/Benchmarking.tsx`
+- `frontend/src/pages/teams/Atendimento.tsx`
+- `frontend/src/pages/teams/Design.tsx`
+
+Criar essas páginas como stubs simples (glass-card com título + "em construção") para o app compilar sem erros.
+
+---
+
+## 12. Regras de segurança
 
 - **Nunca** hardcodar API keys no código-fonte
 - `.env` já está no `.gitignore` do backend e da raiz
