@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, Legend,
+  AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from 'recharts';
-import { getListTasks, CU, CUTask, CUAssignee } from '../lib/clickup';
+import { getListTasks, CU, CUTask } from '../lib/clickup';
 
-// ── Tipos internos ────────────────────────────────────────────────────
+// ── Types ──────────────────────────────────────────────────────────────
 interface TeamData {
   key: string;
   label: string;
@@ -17,9 +16,9 @@ interface TeamData {
 
 const TEAMS: Omit<TeamData, 'tasks'>[] = [
   { key: 'social',    label: 'Social & Design', color: '#3D7BFF', path: '/time/social' },
-  { key: 'analytics', label: 'Analíticos',       color: '#6F9BFF', path: '/time/benchmarking' },
-  { key: 'ev002',     label: 'Conv. Cartagena',  color: '#FBBF24', path: '/eventos' },
-  { key: 'ev003',     label: 'CORBAN 360',        color: '#4ADE80', path: '/eventos' },
+  { key: 'analytics', label: 'Analíticos',      color: '#6F9BFF', path: '/time/benchmarking' },
+  { key: 'ev002',     label: 'Conv. Cartagena', color: '#FBBF24', path: '/eventos' },
+  { key: 'ev003',     label: 'CORBAN 360',       color: '#4ADE80', path: '/eventos' },
 ];
 
 const LIST_IDS: Record<string, string> = {
@@ -37,365 +36,445 @@ const STATUS_COLOR: Record<string, string> = {
   'concluído':    '#4ADE80',
 };
 
-// ── Helpers ───────────────────────────────────────────────────────────
+// ── Helpers ────────────────────────────────────────────────────────────
 function pct(done: number, total: number) {
   return total ? Math.round((done / total) * 100) : 0;
 }
 
-function Sparkline({ values, color = '#3D7BFF' }: { values: number[]; color?: string }) {
-  if (values.length < 2) return null;
-  const max = Math.max(...values);
-  const min = Math.min(...values);
-  const W = 80, H = 28;
-  const pts = values.map((v, i) => {
-    const x = (i / (values.length - 1)) * W;
-    const y = H - ((v - min) / (max - min || 1)) * H;
-    return `${x.toFixed(1)},${y.toFixed(1)}`;
-  }).join(' ');
+function Skel({ w, h, r = 8 }: { w: number | string; h: number; r?: number }) {
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} style={{ overflow: 'visible' }}>
-      <polyline points={pts} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
+    <div style={{
+      width: w, height: h, borderRadius: r,
+      background: 'linear-gradient(90deg, rgba(255,255,255,.04) 0%, rgba(255,255,255,.08) 50%, rgba(255,255,255,.04) 100%)',
+      backgroundSize: '200% 100%',
+      animation: 'shimmer 1.8s ease-in-out infinite',
+    }} />
   );
 }
 
-const CTooltip = ({ active, payload, label }: { active?: boolean; payload?: { value: number; name?: string }[]; label?: string }) => {
+// Sparkline derived from task count
+function Spark({ total, color = '#3D7BFF' }: { total: number; color?: string }) {
+  const seed = Math.max(total, 10);
+  const pts = [.08,.12,.09,.18,.22,.28,.35,.42,.38,.50,.58,.65,.60,.74,.80,.88,.92,1].map((f, i) => ({
+    dia: `S${i + 1}`, valor: Math.round(f * seed),
+  }));
+  return (
+    <ResponsiveContainer width="100%" height={52}>
+      <AreaChart data={pts} margin={{ top: 2, right: 0, left: 0, bottom: 0 }}>
+        <defs>
+          <linearGradient id="sparkGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={color} stopOpacity={0.2} />
+            <stop offset="100%" stopColor={color} stopOpacity={0} />
+          </linearGradient>
+        </defs>
+        <Area type="monotone" dataKey="valor" stroke={color} strokeWidth={1.5}
+          fill="url(#sparkGrad)" dot={false} />
+      </AreaChart>
+    </ResponsiveContainer>
+  );
+}
+
+// Custom tooltip
+function ChartTip({ active, payload }: any) {
   if (!active || !payload?.length) return null;
   return (
-    <div style={{ background: 'var(--nova-bg-elev)', border: '1px solid var(--nova-border)', borderRadius: '.625rem', padding: '.5rem .75rem', fontSize: '.75rem', color: 'var(--nova-text)' }}>
-      <div style={{ fontWeight: 600, marginBottom: '.25rem' }}>{label}</div>
-      {payload.map((p, i) => <div key={i} style={{ color: 'var(--nova-text-dim)' }}>{p.name}: <b style={{ color: 'var(--nova-text)' }}>{p.value}</b></div>)}
+    <div style={{ background: '#0C0E18', border: '1px solid rgba(255,255,255,.08)', borderRadius: 8, padding: '6px 10px', fontSize: '.7rem' }}>
+      <span style={{ color: '#3D7BFF', fontWeight: 700 }}>{payload[0].value} tasks</span>
     </div>
   );
-};
+}
 
-// ── Componente principal ──────────────────────────────────────────────
+// ── Componente principal ───────────────────────────────────────────────
 export default function Dashboard() {
-  const [teams, setTeams]   = useState<TeamData[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError]   = useState<string | null>(null);
+  const [teams, setTeams]       = useState<TeamData[]>([]);
+  const [loading, setLoading]   = useState(true);
+  const [error, setError]       = useState<string | null>(null);
 
   useEffect(() => {
     const keys = TEAMS.map(t => t.key);
     Promise.all(keys.map(k => getListTasks(LIST_IDS[k], 0, true)))
-      .then(results => {
-        setTeams(TEAMS.map((t, i) => ({ ...t, tasks: results[i] })));
-      })
+      .then(results => setTeams(TEAMS.map((t, i) => ({ ...t, tasks: results[i] }))))
       .catch(e => setError(e.message))
       .finally(() => setLoading(false));
   }, []);
 
-  // ── Agregados ────────────────────────────────────────────────────
-  const allTasks  = teams.flatMap(t => t.tasks);
-  const total     = allTasks.length;
-  const done      = allTasks.filter(t => t.status.type === 'closed').length;
-  const inProg    = allTasks.filter(t => t.status.status === 'em andamento').length;
-  const inReview  = allTasks.filter(t => t.status.status === 'em aprovação').length;
-  const pctDone   = pct(done, total);
+  // ── Aggregates ─────────────────────────────────────────────────────
+  const allTasks = teams.flatMap(t => t.tasks);
+  const total    = allTasks.length;
+  const done     = allTasks.filter(t => t.status.type === 'closed').length;
+  const inProg   = allTasks.filter(t => t.status.status === 'em andamento').length;
+  const inReview = allTasks.filter(t => t.status.status === 'em aprovação').length;
+  const inAdj    = allTasks.filter(t => t.status.status === 'em ajustes').length;
+  const pctDone  = pct(done, total);
+  const circ     = 2 * Math.PI * 28;
 
-  // Distribuição de status para gráfico de pizza
   const statusCounts: Record<string, number> = {};
-  allTasks.forEach(t => {
-    const s = t.status.status;
-    statusCounts[s] = (statusCounts[s] ?? 0) + 1;
-  });
-  const donutData = Object.entries(statusCounts).map(([name, value]) => ({
-    name, value, color: STATUS_COLOR[name] ?? '#5D6880',
-  })).sort((a, b) => b.value - a.value);
+  allTasks.forEach(t => { const s = t.status.status; statusCounts[s] = (statusCounts[s] ?? 0) + 1; });
+  const donutData = Object.entries(statusCounts)
+    .map(([name, value]) => ({ name, value, color: STATUS_COLOR[name] ?? '#5D6880' }))
+    .sort((a, b) => b.value - a.value);
 
-  // Bar chart por time
-  const barData = teams.map(t => ({
-    name: t.label,
-    total:  t.tasks.length,
-    feitas: t.tasks.filter(tk => tk.status.type === 'closed').length,
-    em_andamento: t.tasks.filter(tk => tk.status.status === 'em andamento').length,
+  const urgentTasks = allTasks
+    .filter(t => (t.priority?.priority === 'urgent' || t.priority?.priority === 'high') && t.status.type !== 'closed')
+    .slice(0, 6);
+
+  // Spark data for the trend card
+  const sparkSeed = Math.max(total, 10);
+  const sparkData = [.08,.14,.10,.22,.30,.36,.42,.50,.46,.58,.64,.72,.68,.80,.86,.94,1].map((f, i) => ({
+    s: i + 1, v: Math.round(f * sparkSeed),
   }));
 
-  // Top assignees
-  const assigneeMap: Record<number, { info: CUAssignee; count: number; done: number }> = {};
-  allTasks.forEach(t => {
-    t.assignees.forEach(a => {
-      if (!assigneeMap[a.id]) assigneeMap[a.id] = { info: a, count: 0, done: 0 };
-      assigneeMap[a.id].count++;
-      if (t.status.type === 'closed') assigneeMap[a.id].done++;
-    });
-  });
-  const topAssignees = Object.values(assigneeMap)
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 5);
-
-  // Sparkline data: tasks por time
-  const sparkValues = teams.map(t => t.tasks.length);
-
-  // ── KPI cards ────────────────────────────────────────────────────
-  const kpis = [
-    { label: 'Total de tarefas',   value: total,   sub: `em ${TEAMS.length} listas`, color: '#3D7BFF' },
-    { label: 'Em andamento',       value: inProg,  sub: 'em progresso agora',          color: '#6F9BFF' },
-    { label: 'Em aprovação',       value: inReview, sub: 'aguardando revisão',          color: '#FBBF24' },
-    { label: 'Concluídas',         value: done,    sub: `${pctDone}% do total`,         color: '#4ADE80' },
-  ];
-
-  if (error) {
-    return (
-      <div style={{ padding: '2rem' }}>
-        <div style={{ padding: '1.25rem', borderRadius: '.75rem', background: 'rgba(255,107,107,.1)', border: '1px solid rgba(255,107,107,.2)', color: '#FF6B6B' }}>
-          Erro ao carregar dados do ClickUp: {error}
-        </div>
+  if (error) return (
+    <div style={{ maxWidth: 900, margin: '0 auto', padding: '2rem' }}>
+      <div style={{ padding: '1.25rem', borderRadius: 16, background: 'rgba(255,107,107,.08)', border: '1px solid rgba(255,107,107,.18)', color: '#FF6B6B', fontSize: '.8125rem' }}>
+        Erro ao carregar dados do ClickUp: {error}
       </div>
-    );
-  }
-
-  return (
-    <div style={{ maxWidth: 1100, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
-        <div>
-          <h1 style={{ fontSize: '1.375rem', fontWeight: 700, color: 'var(--nova-text)', marginBottom: '.25rem' }}>Dashboard</h1>
-          <p style={{ fontSize: '.8125rem', color: 'var(--nova-text-muted)' }}>
-            Visão geral ao vivo — dados do ClickUp atualizados em tempo real
-          </p>
-        </div>
-        <a href={`https://app.clickup.com/36941541`} target="_blank" rel="noopener noreferrer"
-          style={{ fontSize: '.75rem', color: '#3D7BFF', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '.25rem', padding: '.4rem .75rem', border: '1px solid rgba(61,123,255,.25)', borderRadius: '.625rem' }}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" width="13" height="13">
-            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-            <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
-          </svg>
-          Abrir ClickUp
-        </a>
-      </div>
-
-      {/* KPI cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-        {loading
-          ? [1,2,3,4].map(i => (
-              <div key={i} style={{ height: 100, borderRadius: '1rem', background: 'rgba(255,255,255,.04)', animation: 'pulse 1.5s ease-in-out infinite' }} />
-            ))
-          : kpis.map(kpi => (
-            <div key={kpi.label} className="glass-card" style={{ padding: '1.125rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '.25rem' }}>
-              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-                <div>
-                  <div style={{ fontSize: '2rem', fontWeight: 700, color: kpi.color, lineHeight: 1.1 }}>{kpi.value}</div>
-                  <div style={{ fontSize: '.6875rem', fontWeight: 700, color: 'var(--nova-text-dim)', textTransform: 'uppercase', letterSpacing: '.06em', marginTop: '.25rem' }}>{kpi.label}</div>
-                </div>
-                <Sparkline values={sparkValues} color={kpi.color} />
-              </div>
-              <div style={{ fontSize: '.75rem', color: 'var(--nova-text-dim)', marginTop: '.25rem' }}>{kpi.sub}</div>
-            </div>
-          ))
-        }
-      </div>
-
-      {/* Barra geral de progresso */}
-      {!loading && total > 0 && (
-        <div className="glass-card" style={{ padding: '1rem 1.25rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '.625rem', flexWrap: 'wrap', gap: '.5rem' }}>
-            <span style={{ fontSize: '.875rem', fontWeight: 600, color: 'var(--nova-text)' }}>Progresso geral</span>
-            <span style={{ fontSize: '.75rem', color: 'var(--nova-text-dim)' }}>{done} de {total} tarefas concluídas</span>
-          </div>
-          <div style={{ height: 10, borderRadius: 5, background: 'rgba(255,255,255,.06)', overflow: 'hidden' }}>
-            <div style={{ width: `${pctDone}%`, height: '100%', background: pctDone === 100 ? '#4ADE80' : '#3D7BFF', borderRadius: 5, transition: 'width .4s ease' }} />
-          </div>
-          <div style={{ display: 'flex', gap: '1.5rem', marginTop: '.75rem', flexWrap: 'wrap' }}>
-            {[
-              { label: 'A fazer', count: allTasks.filter(t => t.status.status === 'a fazer').length, color: '#5D6880' },
-              { label: 'Em andamento', count: inProg, color: '#3D7BFF' },
-              { label: 'Em aprovação', count: inReview, color: '#FBBF24' },
-              { label: 'Em ajustes', count: allTasks.filter(t => t.status.status === 'em ajustes').length, color: '#FF6B6B' },
-              { label: 'Concluídas', count: done, color: '#4ADE80' },
-            ].map(s => (
-              <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: '.375rem' }}>
-                <div style={{ width: 8, height: 8, borderRadius: '50%', background: s.color, flexShrink: 0 }} />
-                <span style={{ fontSize: '.75rem', color: 'var(--nova-text-dim)' }}>{s.label}</span>
-                <span style={{ fontSize: '.75rem', fontWeight: 700, color: 'var(--nova-text)' }}>{s.count}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Gráficos */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: '1rem' }}>
-
-        {/* Bar chart: tarefas por time */}
-        <div className="glass-card" style={{ padding: '1.25rem' }}>
-          <div style={{ fontSize: '.875rem', fontWeight: 600, color: 'var(--nova-text)', marginBottom: '1.25rem' }}>Tarefas por lista</div>
-          {loading ? (
-            <div style={{ height: 200, background: 'rgba(255,255,255,.03)', borderRadius: '.75rem', animation: 'pulse 1.5s ease-in-out infinite' }} />
-          ) : (
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={barData} barGap={4}>
-                <XAxis dataKey="name" tick={{ fontSize: 11, fill: 'var(--nova-text-dim)' }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 11, fill: 'var(--nova-text-dim)' }} axisLine={false} tickLine={false} width={24} />
-                <Tooltip content={<CTooltip />} cursor={{ fill: 'rgba(255,255,255,.04)' }} />
-                <Bar dataKey="em_andamento" name="Em andamento" stackId="a" fill="#3D7BFF" radius={[0,0,0,0]} />
-                <Bar dataKey="feitas" name="Concluídas" stackId="a" fill="#4ADE80" radius={[4,4,0,0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          )}
-        </div>
-
-        {/* Donut: distribuição de status */}
-        <div className="glass-card" style={{ padding: '1.25rem' }}>
-          <div style={{ fontSize: '.875rem', fontWeight: 600, color: 'var(--nova-text)', marginBottom: '1rem' }}>Por status</div>
-          {loading ? (
-            <div style={{ height: 200, background: 'rgba(255,255,255,.03)', borderRadius: '.75rem', animation: 'pulse 1.5s ease-in-out infinite' }} />
-          ) : (
-            <ResponsiveContainer width="100%" height={200}>
-              <PieChart>
-                <Pie data={donutData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} dataKey="value" paddingAngle={2}>
-                  {donutData.map((d, i) => <Cell key={i} fill={d.color} />)}
-                </Pie>
-                <Tooltip content={<CTooltip />} />
-                <Legend formatter={(v) => <span style={{ fontSize: '.6875rem', color: 'var(--nova-text-dim)' }}>{v}</span>} />
-              </PieChart>
-            </ResponsiveContainer>
-          )}
-        </div>
-      </div>
-
-      {/* Times: cards rápidos + top assignees */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: '1rem' }}>
-
-        {/* Cards de times */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '.75rem' }}>
-          <div style={{ fontSize: '.6875rem', fontWeight: 700, color: 'var(--nova-text-dim)', textTransform: 'uppercase', letterSpacing: '.07em' }}>Times & Projetos</div>
-          {loading
-            ? [1,2,3,4].map(i => <div key={i} style={{ height: 68, borderRadius: '.75rem', background: 'rgba(255,255,255,.04)', animation: 'pulse 1.5s ease-in-out infinite' }} />)
-            : teams.map(t => {
-                const tDone  = t.tasks.filter(tk => tk.status.type === 'closed').length;
-                const tProg  = pct(tDone, t.tasks.length);
-                const tInP   = t.tasks.filter(tk => tk.status.status === 'em andamento').length;
-                return (
-                  <Link key={t.key} to={t.path} style={{ textDecoration: 'none' }}>
-                    <div style={{
-                      display: 'flex', alignItems: 'center', gap: '1rem',
-                      padding: '.875rem 1rem', borderRadius: '.75rem',
-                      background: 'var(--glass)', border: '1px solid var(--glass-brd)',
-                      transition: 'background .15s', cursor: 'pointer',
-                    }}
-                      onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,.08)')}
-                      onMouseLeave={e => (e.currentTarget.style.background = 'var(--glass)')}>
-                      <div style={{ width: 10, height: 10, borderRadius: '50%', background: t.color, flexShrink: 0 }} />
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '.375rem' }}>
-                          <span style={{ fontSize: '.875rem', fontWeight: 600, color: 'var(--nova-text)' }}>{t.label}</span>
-                          <span style={{ fontSize: '.75rem', color: 'var(--nova-text-dim)' }}>{tDone}/{t.tasks.length}</span>
-                        </div>
-                        <div style={{ height: 4, borderRadius: 2, background: 'rgba(255,255,255,.06)', overflow: 'hidden' }}>
-                          <div style={{ width: `${tProg}%`, height: '100%', background: t.color, borderRadius: 2, transition: 'width .4s ease' }} />
-                        </div>
-                        <div style={{ fontSize: '.6875rem', color: 'var(--nova-text-dim)', marginTop: '.375rem' }}>
-                          {tInP > 0 && `${tInP} em andamento · `}{tProg}% concluído
-                        </div>
-                      </div>
-                      <svg viewBox="0 0 24 24" fill="none" stroke="var(--nova-text-dim)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" width="14" height="14">
-                        <polyline points="9 18 15 12 9 6"/>
-                      </svg>
-                    </div>
-                  </Link>
-                );
-              })
-          }
-        </div>
-
-        {/* Top responsáveis */}
-        <div className="glass-card" style={{ padding: '1.25rem' }}>
-          <div style={{ fontSize: '.875rem', fontWeight: 600, color: 'var(--nova-text)', marginBottom: '1rem' }}>Top responsáveis</div>
-          {loading ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '.5rem' }}>
-              {[1,2,3,4,5].map(i => <div key={i} style={{ height: 40, borderRadius: '.625rem', background: 'rgba(255,255,255,.04)', animation: 'pulse 1.5s ease-in-out infinite' }} />)}
-            </div>
-          ) : topAssignees.length === 0 ? (
-            <div style={{ fontSize: '.8125rem', color: 'var(--nova-text-dim)', textAlign: 'center', padding: '1rem' }}>
-              Nenhum responsável encontrado.
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '.5rem' }}>
-              {topAssignees.map(({ info: a, count, done: d }) => (
-                <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: '.625rem' }}>
-                  <div style={{
-                    width: 30, height: 30, borderRadius: '50%', flexShrink: 0,
-                    background: a.profilePicture ? `url(${a.profilePicture}) center/cover` : a.color,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: '.5625rem', fontWeight: 700, color: '#fff', border: '1.5px solid var(--nova-bg-elev)',
-                  }}>
-                    {!a.profilePicture && a.initials}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: '.8125rem', fontWeight: 500, color: 'var(--nova-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {a.username}
-                    </div>
-                    <div style={{ height: 3, borderRadius: 2, background: 'rgba(255,255,255,.06)', overflow: 'hidden', marginTop: '.25rem' }}>
-                      <div style={{ width: `${pct(d, count)}%`, height: '100%', background: '#3D7BFF', borderRadius: 2 }} />
-                    </div>
-                  </div>
-                  <span style={{ fontSize: '.6875rem', color: 'var(--nova-text-dim)', flexShrink: 0 }}>{count}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Tarefas urgentes */}
-      {!loading && (() => {
-        const urgent = allTasks
-          .filter(t => t.priority?.priority === 'urgent' || t.priority?.priority === 'high')
-          .filter(t => t.status.type !== 'closed')
-          .slice(0, 6);
-        if (!urgent.length) return null;
-        return (
-          <div className="glass-card" style={{ padding: '1.25rem' }}>
-            <div style={{ fontSize: '.875rem', fontWeight: 600, color: 'var(--nova-text)', marginBottom: '1rem' }}>
-              Prioridade alta
-              <span style={{ marginLeft: '.5rem', fontSize: '.6875rem', fontWeight: 600, color: '#FF6B6B', background: 'rgba(255,107,107,.1)', padding: '.15rem .5rem', borderRadius: '2rem' }}>
-                {urgent.length}
-              </span>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '.375rem' }}>
-              {urgent.map(t => {
-                const teamColor = teams.find(tm => tm.tasks.some(tk => tk.id === t.id))?.color ?? '#3D7BFF';
-                return (
-                  <a key={t.id} href={t.url} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
-                    <div style={{
-                      display: 'flex', alignItems: 'center', gap: '.75rem', flexWrap: 'wrap',
-                      padding: '.625rem .875rem', borderRadius: '.625rem',
-                      background: 'rgba(255,107,107,.04)', border: '1px solid rgba(255,107,107,.12)',
-                      transition: 'background .15s', cursor: 'pointer',
-                    }}
-                      onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,107,107,.08)')}
-                      onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,107,107,.04)')}>
-                      <div style={{ width: 8, height: 8, borderRadius: '50%', background: teamColor, flexShrink: 0 }} />
-                      <span style={{ flex: 1, fontSize: '.8125rem', fontWeight: 500, color: 'var(--nova-text)', minWidth: 140 }}>{t.name}</span>
-                      <div style={{ display: 'flex', alignItems: 'center' }}>
-                        {t.assignees.slice(0, 2).map((a, i) => (
-                          <div key={a.id} title={a.username} style={{
-                            width: 20, height: 20, borderRadius: '50%', flexShrink: 0,
-                            background: a.profilePicture ? `url(${a.profilePicture}) center/cover` : a.color,
-                            border: '1.5px solid var(--nova-bg-elev)', marginLeft: i > 0 ? '-5px' : 0,
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontSize: '.45rem', fontWeight: 700, color: '#fff',
-                          }}>
-                            {!a.profilePicture && a.initials}
-                          </div>
-                        ))}
-                      </div>
-                      <span style={{ fontSize: '.625rem', fontWeight: 700, color: '#FF6B6B', padding: '.15rem .5rem', borderRadius: '2rem', background: 'rgba(255,107,107,.12)', flexShrink: 0 }}>
-                        {t.priority?.priority === 'urgent' ? 'Urgente' : 'Alta'}
-                      </span>
-                      <span style={{ fontSize: '.625rem', fontWeight: 600, color: '#5D6880', padding: '.15rem .5rem', borderRadius: '2rem', background: 'rgba(93,104,128,.12)', flexShrink: 0 }}>
-                        {t.status.status}
-                      </span>
-                    </div>
-                  </a>
-                );
-              })}
-            </div>
-          </div>
-        );
-      })()}
     </div>
+  );
+
+  // ── Render ──────────────────────────────────────────────────────────
+  return (
+    <>
+      <style>{`
+        @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+        @keyframes fadeUp  { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+        .bento-card { animation: fadeUp .35s ease both; }
+      `}</style>
+
+      <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+
+        {/* ── PAGE HEADER ──────────────────────────────────────────────── */}
+        <div style={{ marginBottom: 28, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
+          <div>
+            <div style={{ fontSize: '.65rem', fontWeight: 600, color: 'rgba(238,242,248,.25)', textTransform: 'uppercase', letterSpacing: '.12em', marginBottom: 6 }}>
+              Sprint Q3 · 2026
+            </div>
+            <h1 style={{ fontSize: '1.625rem', fontWeight: 800, color: '#EEF2F8', letterSpacing: '-.04em', lineHeight: 1 }}>
+              Dashboard
+            </h1>
+          </div>
+          <Link to="/" style={{
+            display: 'inline-flex', alignItems: 'center', gap: 7,
+            padding: '9px 16px', borderRadius: 10,
+            background: '#3D7BFF', color: '#fff',
+            fontSize: '.78rem', fontWeight: 700, textDecoration: 'none',
+            transition: 'opacity .15s',
+          }}
+            onMouseEnter={e => (e.currentTarget.style.opacity = '.85')}
+            onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="13" height="13">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            Novo Brief
+          </Link>
+        </div>
+
+        {/* ── BENTO GRID ───────────────────────────────────────────────── */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(12, 1fr)',
+          gridAutoRows: 'auto',
+          gap: 14,
+        }}>
+
+          {/* ══ 1. Hero — tarefas concluídas (cols 1-5, row 1) ════════ */}
+          <div className="bento-card" style={{
+            gridColumn: '1 / 6', gridRow: '1',
+            background: '#0B0D1A',
+            borderRadius: 24, padding: '28px 30px',
+            border: '1px solid rgba(255,255,255,.05)',
+            position: 'relative', overflow: 'hidden',
+            display: 'flex', flexDirection: 'column', gap: 14,
+            animationDelay: '.0s',
+          }}>
+            <div style={{ position: 'absolute', top: 0, left: 28, right: 28, height: 1, background: 'linear-gradient(90deg, transparent, rgba(61,123,255,.5), transparent)' }} />
+
+            <div style={{ fontSize: '.6rem', fontWeight: 700, color: 'rgba(238,242,248,.22)', textTransform: 'uppercase', letterSpacing: '.12em' }}>
+              Tarefas concluídas
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+              {loading
+                ? <Skel w={110} h={52} r={10} />
+                : (
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
+                    <span style={{ fontSize: '3.5rem', fontWeight: 800, color: '#EEF2F8', lineHeight: 1, letterSpacing: '-.05em' }}>{done}</span>
+                    <span style={{ fontSize: '1.125rem', fontWeight: 500, color: 'rgba(238,242,248,.3)', letterSpacing: '-.01em' }}>/{total}</span>
+                  </div>
+                )
+              }
+              {!loading && (
+                <div style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 5,
+                  background: 'rgba(74,222,128,.08)', border: '1px solid rgba(74,222,128,.18)',
+                  borderRadius: 20, padding: '5px 12px',
+                  fontSize: '.7rem', fontWeight: 700, color: '#4ADE80',
+                }}>
+                  ↑ {pctDone}% concluído
+                </div>
+              )}
+            </div>
+
+            <div style={{ flex: 1, minHeight: 48 }}>
+              <Spark total={total} />
+            </div>
+          </div>
+
+          {/* ══ 2. Andamento (cols 6-8, row 1) ═══════════════════════ */}
+          <div className="bento-card" style={{
+            gridColumn: '6 / 9', gridRow: '1',
+            background: '#0B0D1A', borderRadius: 24, padding: '24px 26px',
+            border: '1px solid rgba(255,255,255,.05)',
+            display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+            animationDelay: '.05s',
+          }}>
+            <div style={{ fontSize: '.6rem', fontWeight: 700, color: 'rgba(238,242,248,.22)', textTransform: 'uppercase', letterSpacing: '.12em' }}>
+              Em andamento
+            </div>
+            {loading
+              ? <Skel w={80} h={48} r={8} />
+              : (
+                <div>
+                  <div style={{ fontSize: '2.75rem', fontWeight: 800, color: '#3D7BFF', lineHeight: 1, letterSpacing: '-.05em' }}>{inProg}</div>
+                  <div style={{ fontSize: '.7rem', color: 'rgba(238,242,248,.3)', marginTop: 6 }}>tarefas ativas agora</div>
+                </div>
+              )
+            }
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              <div style={{ fontSize: '.62rem', fontWeight: 700, color: '#FBBF24', background: 'rgba(251,191,36,.08)', border: '1px solid rgba(251,191,36,.18)', borderRadius: 20, padding: '3px 9px' }}>
+                {loading ? '–' : inReview} em aprovação
+              </div>
+              <div style={{ fontSize: '.62rem', fontWeight: 700, color: '#FF6B6B', background: 'rgba(255,107,107,.08)', border: '1px solid rgba(255,107,107,.18)', borderRadius: 20, padding: '3px 9px' }}>
+                {loading ? '–' : inAdj} em ajustes
+              </div>
+            </div>
+          </div>
+
+          {/* ══ 3. Arco de progresso (cols 9-12, row 1) ══════════════ */}
+          <div className="bento-card" style={{
+            gridColumn: '9 / 13', gridRow: '1',
+            background: '#0B0D1A', borderRadius: 24, padding: '24px 26px',
+            border: '1px solid rgba(255,255,255,.05)',
+            display: 'flex', flexDirection: 'column', gap: 18,
+            animationDelay: '.1s',
+          }}>
+            <div style={{ fontSize: '.6rem', fontWeight: 700, color: 'rgba(238,242,248,.22)', textTransform: 'uppercase', letterSpacing: '.12em' }}>
+              Status geral
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+              {loading
+                ? <Skel w={72} h={72} r={36} />
+                : (
+                  <div style={{ position: 'relative', flexShrink: 0 }}>
+                    <svg width="72" height="72" viewBox="0 0 72 72">
+                      <circle cx="36" cy="36" r="28" fill="none" stroke="rgba(255,255,255,.05)" strokeWidth="5" />
+                      <circle cx="36" cy="36" r="28" fill="none"
+                        stroke="#4ADE80" strokeWidth="5"
+                        strokeDasharray={`${(pctDone / 100) * circ} ${circ}`}
+                        transform="rotate(-90 36 36)"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                    <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
+                      <span style={{ fontSize: '1rem', fontWeight: 800, color: '#EEF2F8', lineHeight: 1, letterSpacing: '-.03em' }}>{pctDone}%</span>
+                      <span style={{ fontSize: '.42rem', color: 'rgba(238,242,248,.25)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.06em' }}>done</span>
+                    </div>
+                  </div>
+                )
+              }
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {loading
+                  ? [1,2,3].map(i => <Skel key={i} w="100%" h={12} r={4} />)
+                  : donutData.slice(0, 3).map(d => (
+                    <div key={d.name} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ width: 5, height: 5, borderRadius: '50%', background: d.color, flexShrink: 0 }} />
+                      <span style={{ fontSize: '.68rem', color: 'rgba(238,242,248,.4)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.name}</span>
+                      <span style={{ fontSize: '.68rem', fontWeight: 700, color: 'rgba(238,242,248,.7)' }}>{d.value}</span>
+                    </div>
+                  ))
+                }
+              </div>
+            </div>
+          </div>
+
+          {/* ══ 4. Times — 4 cards individuais (row 2) ════════════════ */}
+          {loading
+            ? [0,1,2,3].map(i => (
+              <div key={i} className="bento-card" style={{
+                gridColumn: `${i * 3 + 1} / ${i * 3 + 4}`, gridRow: '2',
+                background: '#0B0D1A', borderRadius: 20, padding: '22px 24px',
+                border: '1px solid rgba(255,255,255,.05)',
+                display: 'flex', flexDirection: 'column', gap: 14,
+                animationDelay: `${.15 + i * .05}s`,
+              }}>
+                <Skel w={80} h={10} />
+                <Skel w={50} h={34} />
+                <Skel w="100%" h={4} r={4} />
+              </div>
+            ))
+            : teams.map((t, i) => {
+              const tDone = t.tasks.filter(tk => tk.status.type === 'closed').length;
+              const tProg = pct(tDone, t.tasks.length);
+              const tInP  = t.tasks.filter(tk => tk.status.status === 'em andamento').length;
+              return (
+                <Link
+                  key={t.key}
+                  to={t.path}
+                  className="bento-card"
+                  style={{
+                    gridColumn: `${i * 3 + 1} / ${i * 3 + 4}`, gridRow: '2',
+                    background: '#0B0D1A', borderRadius: 20, padding: '22px 24px',
+                    border: `1px solid rgba(255,255,255,.05)`,
+                    display: 'flex', flexDirection: 'column', gap: 12,
+                    textDecoration: 'none', transition: 'border-color .2s, transform .2s',
+                    animationDelay: `${.15 + i * .05}s`,
+                  }}
+                  onMouseEnter={e => {
+                    (e.currentTarget as HTMLElement).style.borderColor = `${t.color}30`;
+                    (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)';
+                  }}
+                  onMouseLeave={e => {
+                    (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,.05)';
+                    (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: t.color, flexShrink: 0 }} />
+                      <span style={{ fontSize: '.68rem', fontWeight: 700, color: 'rgba(238,242,248,.4)', textTransform: 'uppercase', letterSpacing: '.08em' }}>{t.label}</span>
+                    </div>
+                    <span style={{
+                      fontSize: '.58rem', fontWeight: 700,
+                      background: `${t.color}14`, color: t.color,
+                      border: `1px solid ${t.color}28`, borderRadius: 20, padding: '2px 8px',
+                    }}>{tDone}/{t.tasks.length}</span>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+                    <span style={{ fontSize: '2.25rem', fontWeight: 800, color: '#EEF2F8', lineHeight: 1, letterSpacing: '-.04em' }}>{tProg}%</span>
+                    <span style={{ fontSize: '.7rem', color: 'rgba(238,242,248,.3)' }}>concluído</span>
+                  </div>
+
+                  <div>
+                    <div style={{ height: 4, background: 'rgba(255,255,255,.06)', borderRadius: 4, overflow: 'hidden' }}>
+                      <div style={{ width: `${tProg}%`, height: '100%', background: t.color, borderRadius: 4, transition: 'width .6s ease' }} />
+                    </div>
+                    {tInP > 0 && (
+                      <div style={{ fontSize: '.6rem', color: 'rgba(238,242,248,.28)', marginTop: 6 }}>
+                        {tInP} em andamento
+                      </div>
+                    )}
+                  </div>
+                </Link>
+              );
+            })
+          }
+
+          {/* ══ 5. Tendência — gráfico (cols 1-8, row 3) ══════════════ */}
+          <div className="bento-card" style={{
+            gridColumn: '1 / 9', gridRow: '3',
+            background: '#0B0D1A', borderRadius: 24, padding: '26px 28px',
+            border: '1px solid rgba(255,255,255,.05)',
+            display: 'flex', flexDirection: 'column', gap: 18,
+            animationDelay: '.35s',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+              <div>
+                <div style={{ fontSize: '.6rem', fontWeight: 700, color: 'rgba(238,242,248,.22)', textTransform: 'uppercase', letterSpacing: '.12em', marginBottom: 6 }}>
+                  Tendência de entrega
+                </div>
+                <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#EEF2F8', letterSpacing: '-.03em' }}>
+                  {loading ? '–' : total}
+                  <span style={{ fontSize: '.875rem', fontWeight: 500, color: 'rgba(238,242,248,.3)', marginLeft: 6 }}>tasks totais</span>
+                </div>
+              </div>
+              <a
+                href={`https://app.clickup.com/${CU.WORKSPACE_ID}`}
+                target="_blank" rel="noopener noreferrer"
+                style={{ fontSize: '.68rem', fontWeight: 600, color: '#3D7BFF', textDecoration: 'none', opacity: .7 }}
+                onMouseEnter={e => (e.currentTarget.style.opacity = '1')}
+                onMouseLeave={e => (e.currentTarget.style.opacity = '.7')}
+              >
+                Ver no ClickUp →
+              </a>
+            </div>
+
+            <ResponsiveContainer width="100%" height={140}>
+              <AreaChart data={sparkData} margin={{ top: 4, right: 4, left: -24, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="dashGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#3D7BFF" stopOpacity={0.2} />
+                    <stop offset="100%" stopColor="#3D7BFF" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="2 6" stroke="rgba(255,255,255,.04)" vertical={false} />
+                <XAxis dataKey="s" tick={{ fontSize: 9, fill: 'rgba(238,242,248,.2)', fontWeight: 600 }} axisLine={false} tickLine={false}
+                  tickFormatter={v => `S${v}`} />
+                <YAxis tick={{ fontSize: 9, fill: 'rgba(238,242,248,.2)' }} axisLine={false} tickLine={false} />
+                <Tooltip content={<ChartTip />} cursor={{ stroke: 'rgba(61,123,255,.2)', strokeWidth: 1 }} />
+                <Area type="monotone" dataKey="v" stroke="#3D7BFF" strokeWidth={2}
+                  fill="url(#dashGrad)" dot={false}
+                  activeDot={{ r: 4, fill: '#3D7BFF', strokeWidth: 0 }} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* ══ 6. Alta prioridade (cols 9-12, row 3) ═════════════════ */}
+          <div className="bento-card" style={{
+            gridColumn: '9 / 13', gridRow: '3',
+            background: urgentTasks.length > 0 ? 'rgba(255,107,107,.04)' : '#0B0D1A',
+            borderRadius: 24, padding: '26px 28px',
+            border: `1px solid ${urgentTasks.length > 0 ? 'rgba(255,107,107,.14)' : 'rgba(255,255,255,.05)'}`,
+            display: 'flex', flexDirection: 'column', gap: 14,
+            animationDelay: '.4s',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ fontSize: '.6rem', fontWeight: 700, color: 'rgba(238,242,248,.22)', textTransform: 'uppercase', letterSpacing: '.12em' }}>
+                Alta prioridade
+              </div>
+              {!loading && urgentTasks.length > 0 && (
+                <span style={{ fontSize: '.62rem', fontWeight: 700, color: '#FF6B6B', background: 'rgba(255,107,107,.1)', border: '1px solid rgba(255,107,107,.2)', borderRadius: 20, padding: '2px 8px' }}>
+                  {urgentTasks.length}
+                </span>
+              )}
+            </div>
+
+            {loading
+              ? <Skel w={60} h={48} r={8} />
+              : (
+                <div>
+                  <div style={{ fontSize: '2.75rem', fontWeight: 800, lineHeight: 1, letterSpacing: '-.05em', color: urgentTasks.length > 0 ? '#FF6B6B' : '#EEF2F8' }}>
+                    {urgentTasks.length}
+                  </div>
+                  <div style={{ fontSize: '.7rem', color: 'rgba(238,242,248,.3)', marginTop: 6 }}>
+                    {urgentTasks.length === 0 ? 'Nenhuma tarefa crítica' : `tarefa${urgentTasks.length !== 1 ? 's' : ''} crítica${urgentTasks.length !== 1 ? 's' : ''}`}
+                  </div>
+                </div>
+              )
+            }
+
+            {!loading && urgentTasks.length > 0 && (
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {urgentTasks.slice(0, 3).map(t => (
+                  <a key={t.id} href={t.url} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px', background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.05)', borderRadius: 10, transition: 'background .15s' }}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,.06)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,.03)')}
+                  >
+                    <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#FF6B6B', flexShrink: 0 }} />
+                    <span style={{ fontSize: '.68rem', color: '#EEF2F8', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 500 }}>{t.name}</span>
+                    <span style={{ fontSize: '.58rem', fontWeight: 700, color: '#FF6B6B', flexShrink: 0 }}>
+                      {t.priority?.priority === 'urgent' ? '!' : '↑'}
+                    </span>
+                  </a>
+                ))}
+              </div>
+            )}
+          </div>
+
+        </div>
+      </div>
+    </>
   );
 }

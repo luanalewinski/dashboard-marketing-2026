@@ -1,147 +1,49 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 
-const NAV_SECTIONS = [
+const NAV_GROUPS = [
   {
-    label: 'Geral',
     items: [
-      {
-        label: 'Dashboard',
-        to: '/dashboard',
-        icon: (
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
-            <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
-            <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
-          </svg>
-        ),
-      },
-      {
-        label: 'Nova Campanha',
-        to: '/',
-        icon: (
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
-            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-          </svg>
-        ),
-      },
-    ],
-  },
-  {
-    label: 'Planejamento',
-    items: [
-      {
-        label: 'Sprints',
-        to: '/sprints',
-        icon: (
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
-            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
-          </svg>
-        ),
-      },
-      {
-        label: 'Eventos',
-        to: '/eventos',
-        icon: (
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
-            <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/>
-            <line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
-          </svg>
-        ),
-      },
-    ],
-  },
-  {
-    label: 'Canais',
-    items: [
-      {
-        label: 'Instagram',
-        to: '/instagram',
-        color: '#E1306C',
-        icon: (
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
-            <path d="M17 2H7a5 5 0 0 0-5 5v10a5 5 0 0 0 5 5h10a5 5 0 0 0 5-5V7a5 5 0 0 0-5-5z"/>
-            <circle cx="12" cy="12" r="3"/><circle cx="17.5" cy="6.5" r="1"/>
-          </svg>
-        ),
-      },
+      { label: 'Dashboard',      to: '/dashboard', exact: true },
+      { label: 'Nova Campanha',  to: '/',          exact: true },
+      { label: 'Sprints',        to: '/sprints' },
+      { label: 'Eventos',        to: '/eventos' },
     ],
   },
   {
     label: 'Times',
     items: [
-      {
-        label: 'Social',
-        to: '/time/social',
-        color: '#3D7BFF',
-        icon: (
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
-            <path d="M17 2H7a5 5 0 0 0-5 5v10a5 5 0 0 0 5 5h10a5 5 0 0 0 5-5V7a5 5 0 0 0-5-5z"/>
-            <circle cx="12" cy="12" r="3"/><circle cx="17.5" cy="6.5" r="1"/>
-          </svg>
-        ),
-      },
-      {
-        label: 'Benchmarking',
-        to: '/time/benchmarking',
-        color: '#6F9BFF',
-        icon: (
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
-            <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/>
-            <line x1="6" y1="20" x2="6" y2="14"/>
-          </svg>
-        ),
-      },
-      {
-        label: 'Atendimento',
-        to: '/time/atendimento',
-        color: '#4ADE80',
-        icon: (
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-          </svg>
-        ),
-      },
-      {
-        label: 'Design',
-        to: '/time/design',
-        color: '#FBBF24',
-        icon: (
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
-            <circle cx="12" cy="12" r="3"/>
-            <path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/>
-          </svg>
-        ),
-      },
+      { label: 'Social',         to: '/time/social',       color: '#3D7BFF' },
+      { label: 'Benchmarking',   to: '/time/benchmarking', color: '#6F9BFF' },
+      { label: 'Atendimento',    to: '/time/atendimento',  color: '#4ADE80' },
+      { label: 'Design',         to: '/time/design',       color: '#FBBF24' },
+    ],
+  },
+  {
+    label: 'Canais',
+    items: [
+      { label: 'Instagram',      to: '/instagram',         color: '#E1306C' },
     ],
   },
 ];
 
-interface LayoutProps {
-  children: React.ReactNode;
-}
+interface LayoutProps { children: React.ReactNode; }
 
 export default function Layout({ children }: LayoutProps) {
-  const [collapsed, setCollapsed] = useState(false);
-  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const [theme, setTheme]       = useState<'dark' | 'light'>('dark');
   const [a11yOpen, setA11yOpen] = useState(false);
   const [a11yLevel, setA11yLevel] = useState<'' | 'a-plus' | 'a-plus-plus'>('');
   const [lastUpdated, setLastUpdated] = useState(new Date());
+  const a11yRef = useRef<HTMLDivElement>(null);
+  const location = useLocation();
 
   useEffect(() => {
-    const id = setInterval(() => {}, 60000);
-    return () => clearInterval(id);
+    function handleClick(e: MouseEvent) {
+      if (a11yRef.current && !a11yRef.current.contains(e.target as Node)) setA11yOpen(false);
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
   }, []);
-
-  const handleRefresh = () => setLastUpdated(new Date());
-
-  const formatLastUpdated = (d: Date) => {
-    const diff = Math.floor((Date.now() - d.getTime()) / 60000);
-    if (diff < 1) return 'agora há pouco';
-    if (diff === 1) return 'há 1 min';
-    if (diff < 60) return `há ${diff} min`;
-    return d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-  };
-  const location = useLocation();
 
   const toggleTheme = () => {
     const next = theme === 'dark' ? 'light' : 'dark';
@@ -157,97 +59,91 @@ export default function Layout({ children }: LayoutProps) {
     setA11yOpen(false);
   };
 
+  const formatTime = (d: Date) => {
+    const diff = Math.floor((Date.now() - d.getTime()) / 60000);
+    if (diff < 1) return 'agora';
+    if (diff === 1) return '1 min';
+    if (diff < 60) return `${diff} min`;
+    return d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  };
+
+  function isActive(to: string, exact?: boolean) {
+    return exact ? location.pathname === to : location.pathname.startsWith(to);
+  }
+
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--nova-bg)' }}>
-      {/* ── Sidebar ── */}
-      <aside style={{
-        width: collapsed ? 56 : 220,
-        background: 'var(--nova-bg-elev)',
-        borderRight: '1px solid var(--nova-border)',
-        display: 'flex', flexDirection: 'column',
-        flexShrink: 0, transition: 'width .2s', position: 'relative', zIndex: 10,
+    <div style={{ minHeight: '100vh', background: 'var(--nova-bg)', display: 'flex', flexDirection: 'column' }}>
+
+      {/* ── TOP NAVBAR ─────────────────────────────────────────────────── */}
+      <header style={{
+        background: 'rgba(8,10,18,.92)',
+        backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)',
+        borderBottom: '1px solid rgba(255,255,255,.05)',
+        position: 'sticky', top: 0, zIndex: 100,
+        display: 'flex', alignItems: 'center',
+        padding: '0 24px', height: 52, gap: 0,
       }}>
-        {/* Collapse button */}
-        <button
-          onClick={() => setCollapsed(!collapsed)}
-          aria-label="Colapsar menu"
-          style={{
-            position: 'absolute', right: -12, top: 24,
-            width: 24, height: 24, borderRadius: '50%',
-            background: 'var(--nova-bg-elev-2)', border: '1px solid var(--nova-border)',
-            color: 'var(--nova-text-muted)', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 11, zIndex: 20, fontFamily: 'Sora, sans-serif',
-          }}
-        >{collapsed ? '›' : '‹'}</button>
 
         {/* Logo */}
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: '.75rem',
-          padding: '1.25rem 1rem', borderBottom: '1px solid var(--nova-border)',
-          overflow: 'hidden', whiteSpace: 'nowrap',
-        }}>
-          <div style={{ fontFamily: 'Sora, sans-serif', fontWeight: 700, fontSize: '1.05rem', display: 'flex', alignItems: 'center', letterSpacing: '.03em', flexShrink: 0 }}>
+        <Link to="/dashboard" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '.5rem', flexShrink: 0, marginRight: 28 }}>
+          <div style={{ fontFamily: 'Sora, sans-serif', fontWeight: 800, fontSize: '1rem', display: 'flex', alignItems: 'center', letterSpacing: '.03em' }}>
             <span style={{ color: 'var(--nova-text)' }}>N</span>
             <span style={{
-              display: 'inline-block', width: '0.95em', height: '0.95em',
+              display: 'inline-block', width: '.88em', height: '.88em',
               border: '2.5px solid var(--nova-red)', borderRadius: '50%',
-              margin: '0 0.02em', transform: 'translateY(.06em)',
+              margin: '0 .03em', transform: 'translateY(.07em)',
             }} />
             <span style={{ color: 'var(--nova-text)' }}>VA</span>
           </div>
-          {!collapsed && (
-            <div style={{ fontSize: '.625rem', fontWeight: 600, color: 'var(--nova-text-dim)', textTransform: 'uppercase', letterSpacing: '.08em' }}>
-              Promotora
-            </div>
-          )}
-        </div>
+          <div style={{
+            fontSize: '.55rem', fontWeight: 700, color: 'rgba(238,242,248,.25)',
+            textTransform: 'uppercase', letterSpacing: '.12em', paddingTop: 2,
+          }}>
+            Promotora
+          </div>
+        </Link>
 
-        {/* Nav */}
-        <nav style={{ padding: '.5rem 0', flex: 1, overflowY: 'auto' }}>
-          {NAV_SECTIONS.map((section) => (
-            <div key={section.label} style={{ marginBottom: '.25rem' }}>
-              {/* Separador de seção */}
-              {!collapsed && (
-                <div style={{
-                  fontSize: '.5625rem', fontWeight: 700, color: 'var(--nova-text-dim)',
-                  textTransform: 'uppercase', letterSpacing: '.09em',
-                  padding: '.75rem .875rem .3rem',
-                }}>
-                  {section.label}
-                </div>
-              )}
-              {collapsed && (
-                <div style={{ height: '.5rem', borderTop: '1px solid var(--nova-border)', margin: '.375rem 0' }} />
-              )}
+        {/* Divider */}
+        <div style={{ width: 1, height: 18, background: 'rgba(255,255,255,.07)', marginRight: 24, flexShrink: 0 }} />
 
-              {section.items.map((item) => {
-                const active = item.to === '/'
-                  ? location.pathname === '/'
-                  : location.pathname.startsWith(item.to);
-                const accentColor = ('color' in item && item.color) ? item.color : 'var(--nova-blue)';
+        {/* Nav items */}
+        <nav style={{ display: 'flex', alignItems: 'center', gap: 2, flex: 1, overflowX: 'auto', scrollbarWidth: 'none' }}>
+          {NAV_GROUPS.map((group, gi) => (
+            <div key={gi} style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              {gi > 0 && (
+                <div style={{ width: 1, height: 14, background: 'rgba(255,255,255,.07)', margin: '0 8px', flexShrink: 0 }} />
+              )}
+              {group.label && (
+                <span style={{ fontSize: '.55rem', fontWeight: 700, color: 'rgba(238,242,248,.2)', textTransform: 'uppercase', letterSpacing: '.1em', paddingRight: 6, flexShrink: 0 }}>
+                  {group.label}
+                </span>
+              )}
+              {group.items.map(item => {
+                const active = isActive(item.to, (item as any).exact);
+                const color = (item as any).color ?? 'var(--nova-blue)';
                 return (
                   <Link
                     key={item.to}
                     to={item.to}
-                    title={collapsed ? item.label : undefined}
                     style={{
-                      display: 'flex', alignItems: 'center',
-                      gap: collapsed ? 0 : '.5rem',
-                      padding: collapsed ? '.5rem 0' : '.5rem .875rem',
-                      justifyContent: collapsed ? 'center' : 'flex-start',
-                      fontSize: '.8125rem', fontWeight: active ? 600 : 500,
-                      color: active ? accentColor : 'var(--nova-text-muted)',
-                      textDecoration: 'none', transition: 'all .15s',
-                      borderRight: active ? `3px solid ${accentColor}` : '3px solid transparent',
-                      background: active ? `${accentColor}18` : 'transparent',
-                      whiteSpace: 'nowrap', overflow: 'hidden',
+                      display: 'inline-flex', alignItems: 'center',
+                      padding: '5px 12px', borderRadius: 8,
+                      fontSize: '.75rem', fontWeight: active ? 600 : 500,
+                      color: active ? color : 'rgba(238,242,248,.45)',
+                      background: active ? `${color}14` : 'transparent',
+                      border: `1px solid ${active ? `${color}28` : 'transparent'}`,
+                      textDecoration: 'none', whiteSpace: 'nowrap',
+                      transition: 'all .15s',
+                      flexShrink: 0,
                     }}
+                    onMouseEnter={e => { if (!active) (e.currentTarget as HTMLElement).style.color = 'rgba(238,242,248,.8)'; }}
+                    onMouseLeave={e => { if (!active) (e.currentTarget as HTMLElement).style.color = 'rgba(238,242,248,.45)'; }}
                   >
-                    <span style={{ color: active ? accentColor : 'var(--nova-text-dim)', flexShrink: 0 }}>
-                      {item.icon}
-                    </span>
-                    {!collapsed && <span>{item.label}</span>}
+                    {active && (item as any).color && (
+                      <span style={{ width: 5, height: 5, borderRadius: '50%', background: color, marginRight: 6, flexShrink: 0 }} />
+                    )}
+                    {item.label}
                   </Link>
                 );
               })}
@@ -255,107 +151,113 @@ export default function Layout({ children }: LayoutProps) {
           ))}
         </nav>
 
-        {/* Bottom btn */}
-        <div style={{ padding: '.875rem', borderTop: '1px solid var(--nova-border)' }}>
-          <Link to="/" className="btn-primary" style={{ width: '100%', textDecoration: 'none', justifyContent: 'center' }}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" width="14" height="14">
-              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+        {/* Right controls */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, marginLeft: 20 }}>
+
+          {/* Sync */}
+          <button
+            onClick={() => setLastUpdated(new Date())}
+            title="Atualizar dados"
+            style={{
+              display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px',
+              borderRadius: 8, border: '1px solid rgba(255,255,255,.07)',
+              background: 'transparent', color: 'rgba(238,242,248,.35)',
+              fontSize: '.65rem', fontWeight: 600, cursor: 'pointer',
+              transition: 'all .15s',
+            }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = 'rgba(238,242,248,.7)'; (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,.14)'; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = 'rgba(238,242,248,.35)'; (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,.07)'; }}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" width="11" height="11">
+              <polyline points="23 4 23 10 17 10"/>
+              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
             </svg>
-            {!collapsed && <span>Novo Brief</span>}
-          </Link>
-        </div>
-      </aside>
+            {formatTime(lastUpdated)}
+          </button>
 
-      {/* ── Main ── */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-        {/* Topbar */}
-        <header style={{
-          background: 'var(--nova-bg-elev)', borderBottom: '1px solid var(--nova-border)',
-          padding: '.875rem 1.5rem', display: 'flex', alignItems: 'center', gap: '1rem',
-        }}>
-          <span style={{ fontSize: '.9375rem', fontWeight: 700, color: 'var(--nova-text)', flex: 1 }}>
-            Sistema de Campanhas
-          </span>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem', position: 'relative' }}>
-            {/* Última atualização */}
-            <button
-              className="btn-ghost"
-              onClick={handleRefresh}
-              title="Atualizar dados"
-              style={{ gap: '.375rem', fontSize: '.6875rem', color: 'var(--nova-text-dim)' }}
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" width="13" height="13">
-                <polyline points="23 4 23 10 17 10"/>
-                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
-              </svg>
-              <span style={{ whiteSpace: 'nowrap' }}>Atualização — {formatLastUpdated(lastUpdated)}</span>
-            </button>
-
-            {/* Theme toggle */}
-            <button className="btn-ghost" onClick={toggleTheme} aria-label="Alternar tema">
-              {theme === 'dark' ? (
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" width="14" height="14">
-                  <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
-                  <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
-                  <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
-                </svg>
-              ) : (
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" width="14" height="14">
-                  <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-                </svg>
-              )}
-              <span>{theme === 'dark' ? 'Claro' : 'Escuro'}</span>
-            </button>
-
-            {/* A11y */}
-            <div style={{ position: 'relative' }}>
-              <button className="btn-ghost" onClick={() => setA11yOpen(!a11yOpen)} aria-expanded={a11yOpen} aria-label="Acessibilidade">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" width="14" height="14">
-                  <circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/>
-                </svg>
-                <span>A</span>
-              </button>
-              {a11yOpen && (
-                <div style={{
-                  position: 'absolute', top: 'calc(100% + .5rem)', right: 0,
-                  background: 'var(--nova-bg-elev)', border: '1px solid var(--nova-border)',
-                  borderRadius: '.75rem', padding: '.75rem', width: 160, zIndex: 100,
-                  boxShadow: '0 8px 24px rgba(0,0,0,.4)',
-                }}>
-                  <div style={{ fontSize: '.625rem', fontWeight: 600, color: 'var(--nova-text-dim)', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: '.5rem' }}>
-                    Tamanho de texto
-                  </div>
-                  <div style={{ display: 'flex', gap: '.375rem' }}>
-                    {(['', 'a-plus', 'a-plus-plus'] as const).map((lvl, i) => (
-                      <button
-                        key={lvl}
-                        onClick={() => setA11y(lvl)}
-                        className="btn-ghost"
-                        style={{ flex: 1, justifyContent: 'center', color: a11yLevel === lvl ? 'var(--nova-blue)' : undefined }}
-                      >
-                        {['A', 'A+', 'A++'][i]}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div style={{
-              width: '2rem', height: '2rem', borderRadius: '50%',
-              background: 'rgba(61,123,255,.18)', border: '1.5px solid rgba(61,123,255,.35)',
+          {/* Theme */}
+          <button
+            onClick={toggleTheme}
+            title={theme === 'dark' ? 'Modo claro' : 'Modo escuro'}
+            style={{
+              width: 32, height: 32, borderRadius: 8,
+              border: '1px solid rgba(255,255,255,.07)',
+              background: 'transparent', color: 'rgba(238,242,248,.4)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: '.6875rem', fontWeight: 700, color: 'var(--nova-blue)',
-            }}>MK</div>
-          </div>
-        </header>
+              cursor: 'pointer', transition: 'all .15s',
+            }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = 'rgba(238,242,248,.8)'; (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,.14)'; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = 'rgba(238,242,248,.4)'; (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,.07)'; }}
+          >
+            {theme === 'dark'
+              ? <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" width="14" height="14"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+              : <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" width="14" height="14"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+            }
+          </button>
 
-        {/* Page content */}
-        <main style={{ flex: 1, overflowY: 'auto', padding: '1.5rem' }}>
-          {children}
-        </main>
-      </div>
+          {/* A11y */}
+          <div ref={a11yRef} style={{ position: 'relative' }}>
+            <button
+              onClick={() => setA11yOpen(!a11yOpen)}
+              title="Acessibilidade"
+              style={{
+                width: 32, height: 32, borderRadius: 8,
+                border: '1px solid rgba(255,255,255,.07)',
+                background: a11yOpen ? 'rgba(255,255,255,.05)' : 'transparent',
+                color: 'rgba(238,242,248,.4)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: 'pointer', fontSize: '.65rem', fontWeight: 700, transition: 'all .15s',
+              }}
+            >A</button>
+            {a11yOpen && (
+              <div style={{
+                position: 'absolute', top: 'calc(100% + 8px)', right: 0,
+                background: '#0E101A', border: '1px solid rgba(255,255,255,.08)',
+                borderRadius: 12, padding: '12px', width: 148, zIndex: 200,
+                boxShadow: '0 16px 48px rgba(0,0,0,.6)',
+              }}>
+                <div style={{ fontSize: '.55rem', fontWeight: 700, color: 'rgba(238,242,248,.25)', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 8 }}>
+                  Tamanho de texto
+                </div>
+                <div style={{ display: 'flex', gap: 4 }}>
+                  {(['', 'a-plus', 'a-plus-plus'] as const).map((lvl, i) => (
+                    <button
+                      key={lvl}
+                      onClick={() => setA11y(lvl)}
+                      style={{
+                        flex: 1, height: 28, borderRadius: 6,
+                        border: `1px solid ${a11yLevel === lvl ? 'rgba(61,123,255,.4)' : 'rgba(255,255,255,.08)'}`,
+                        background: a11yLevel === lvl ? 'rgba(61,123,255,.12)' : 'transparent',
+                        color: a11yLevel === lvl ? '#3D7BFF' : 'rgba(238,242,248,.45)',
+                        fontSize: '.7rem', fontWeight: 700, cursor: 'pointer',
+                      }}
+                    >
+                      {['A', 'A+', 'A++'][i]}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Avatar */}
+          <div style={{
+            width: 30, height: 30, borderRadius: '50%',
+            background: 'rgba(61,123,255,.15)',
+            border: '1.5px solid rgba(61,123,255,.3)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: '.62rem', fontWeight: 800, color: '#3D7BFF',
+            letterSpacing: '.02em',
+          }}>MK</div>
+        </div>
+
+      </header>
+
+      {/* ── PAGE CONTENT ───────────────────────────────────────────────── */}
+      <main style={{ flex: 1, overflowY: 'auto', padding: '28px 32px 48px' }}>
+        {children}
+      </main>
+
     </div>
   );
 }
