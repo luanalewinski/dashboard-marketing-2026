@@ -181,14 +181,16 @@ export default function Dashboard() {
           {/* ══ 1. Hero — tarefas concluídas (cols 1-5, row 1) ════════ */}
           <div className="bento-card" style={{
             gridColumn: '1 / 6', gridRow: '1',
-            background: '#0B0D1A',
+            background: 'linear-gradient(145deg, rgba(74,222,128,.07) 0%, rgba(74,222,128,.02) 40%, #0B0D1A 70%)',
             borderRadius: 24, padding: '28px 30px',
-            border: '1px solid rgba(255,255,255,.05)',
+            border: '1px solid rgba(74,222,128,.14)',
             position: 'relative', overflow: 'hidden',
             display: 'flex', flexDirection: 'column', gap: 14,
             animationDelay: '.0s',
           }}>
-            <div style={{ position: 'absolute', top: 0, left: 28, right: 28, height: 1, background: 'linear-gradient(90deg, transparent, rgba(61,123,255,.5), transparent)' }} />
+            {/* Glow radial no canto */}
+            <div style={{ position: 'absolute', top: -60, left: -60, width: 240, height: 240, borderRadius: '50%', background: 'radial-gradient(circle, rgba(74,222,128,.09) 0%, transparent 70%)', pointerEvents: 'none' }} />
+            <div style={{ position: 'absolute', top: 0, left: 28, right: 28, height: 1, background: 'linear-gradient(90deg, transparent, rgba(74,222,128,.45), transparent)' }} />
 
             <div style={{ fontSize: '.6rem', fontWeight: 700, color: 'rgba(238,242,248,.22)', textTransform: 'uppercase', letterSpacing: '.12em' }}>
               Tarefas concluídas
@@ -375,11 +377,15 @@ export default function Dashboard() {
           {/* ══ 5. Tendência — gráfico (cols 1-8, row 3) ══════════════ */}
           <div className="bento-card" style={{
             gridColumn: '1 / 9', gridRow: '3',
-            background: '#0B0D1A', borderRadius: 24, padding: '26px 28px',
-            border: '1px solid rgba(255,255,255,.05)',
+            background: 'linear-gradient(180deg, rgba(61,123,255,.07) 0%, rgba(61,123,255,.02) 35%, #0B0D1A 65%)',
+            borderRadius: 24, padding: '26px 28px',
+            border: '1px solid rgba(61,123,255,.12)',
+            position: 'relative', overflow: 'hidden',
             display: 'flex', flexDirection: 'column', gap: 18,
             animationDelay: '.35s',
           }}>
+            {/* Glow radial topo */}
+            <div style={{ position: 'absolute', top: -80, left: '30%', width: 300, height: 200, background: 'radial-gradient(ellipse, rgba(61,123,255,.07) 0%, transparent 70%)', pointerEvents: 'none' }} />
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
               <div>
                 <div style={{ fontSize: '.6rem', fontWeight: 700, color: 'rgba(238,242,248,.22)', textTransform: 'uppercase', letterSpacing: '.12em', marginBottom: 6 }}>
@@ -424,12 +430,18 @@ export default function Dashboard() {
           {/* ══ 6. Alta prioridade (cols 9-12, row 3) ═════════════════ */}
           <div className="bento-card" style={{
             gridColumn: '9 / 13', gridRow: '3',
-            background: urgentTasks.length > 0 ? 'rgba(255,107,107,.04)' : '#0B0D1A',
+            background: urgentTasks.length > 0
+              ? 'linear-gradient(145deg, rgba(255,107,107,.1) 0%, rgba(255,107,107,.03) 45%, #0B0D1A 70%)'
+              : '#0B0D1A',
             borderRadius: 24, padding: '26px 28px',
-            border: `1px solid ${urgentTasks.length > 0 ? 'rgba(255,107,107,.14)' : 'rgba(255,255,255,.05)'}`,
+            border: `1px solid ${urgentTasks.length > 0 ? 'rgba(255,107,107,.2)' : 'rgba(255,255,255,.05)'}`,
+            position: 'relative', overflow: 'hidden',
             display: 'flex', flexDirection: 'column', gap: 14,
             animationDelay: '.4s',
           }}>
+            {urgentTasks.length > 0 && (
+              <div style={{ position: 'absolute', top: -50, right: -50, width: 180, height: 180, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,107,107,.1) 0%, transparent 70%)', pointerEvents: 'none' }} />
+            )}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ fontSize: '.6rem', fontWeight: 700, color: 'rgba(238,242,248,.22)', textTransform: 'uppercase', letterSpacing: '.12em' }}>
                 Alta prioridade
