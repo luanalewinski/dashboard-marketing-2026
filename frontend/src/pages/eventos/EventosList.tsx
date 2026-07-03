@@ -144,7 +144,7 @@ export default function EventosList() {
   const [novoAno, setNovoAno]               = useState(new Date().getFullYear());
   const [novoItem, setNovoItem]             = useState('');
   const [novoItemCat, setNovoItemCat]       = useState('design');
-  const [activeTab, setActiveTab]           = useState<string>('design');
+  const [activeTab, setActiveTab]           = useState<string>('geral');
   const [showNovoLink, setShowNovoLink]     = useState(false);
   const [novoLinkType, setNovoLinkType]     = useState('drive');
   const [novoLinkLabel, setNovoLinkLabel]   = useState('');
@@ -666,8 +666,41 @@ export default function EventosList() {
                           {/* ── ABAS DOS TIMES ── */}
                           {!isClickUp && (
                             <>
-                              {/* Tab switcher */}
+                              {/* Tab switcher — Geral + 3 times */}
                               <div style={{ display: 'flex', gap: 4, marginBottom: 18, background: 'rgba(255,255,255,.03)', borderRadius: 12, padding: 4 }}>
+                                {/* Aba Geral */}
+                                {(() => {
+                                  const isGeral = activeTab === 'geral';
+                                  const all = activeEdicao.checklist;
+                                  const allPct = all.length ? Math.round(all.filter(i => i.done).length / all.length * 100) : 0;
+                                  return (
+                                    <button
+                                      onClick={() => setActiveTab('geral')}
+                                      style={{
+                                        flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
+                                        padding: '8px 12px', borderRadius: 9, border: 'none', cursor: 'pointer',
+                                        background: isGeral ? '#0B0D1A' : 'transparent',
+                                        transition: 'all .15s',
+                                        boxShadow: isGeral ? '0 1px 4px rgba(0,0,0,.3)' : 'none',
+                                      }}
+                                    >
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                                        <span style={{ width: 5, height: 5, borderRadius: '50%', background: isGeral ? '#EEF2F8' : 'rgba(255,255,255,.2)', flexShrink: 0, transition: 'background .15s' }} />
+                                        <span style={{ fontSize: '.72rem', fontWeight: isGeral ? 700 : 500, color: isGeral ? '#EEF2F8' : 'rgba(238,242,248,.4)', transition: 'color .15s' }}>
+                                          Geral
+                                        </span>
+                                      </div>
+                                      <span style={{ fontSize: '.58rem', fontWeight: 600, color: isGeral ? 'rgba(238,242,248,.5)' : 'rgba(238,242,248,.2)', transition: 'color .15s' }}>
+                                        {all.length === 0 ? '0 itens' : `${allPct}% · ${all.length} itens`}
+                                      </span>
+                                    </button>
+                                  );
+                                })()}
+
+                                {/* Divisor */}
+                                <div style={{ width: 1, background: 'rgba(255,255,255,.06)', alignSelf: 'stretch', margin: '4px 0', flexShrink: 0 }} />
+
+                                {/* Abas por time */}
                                 {TEAMS.map(team => {
                                   const teamItems = activeEdicao.checklist.filter(i => i.category === team.key);
                                   const teamPct   = teamItems.length ? Math.round(teamItems.filter(i => i.done).length / teamItems.length * 100) : 0;
@@ -698,8 +731,49 @@ export default function EventosList() {
                                 })}
                               </div>
 
-                              {/* Barra de progresso da aba ativa */}
+                              {/* Barra de progresso */}
                               {(() => {
+                                if (activeTab === 'geral') {
+                                  const all   = activeEdicao.checklist;
+                                  const done  = all.filter(i => i.done).length;
+                                  const gPct  = all.length ? Math.round(done / all.length * 100) : 0;
+                                  if (all.length === 0) return null;
+                                  return (
+                                    <div style={{ marginBottom: 16 }}>
+                                      {/* Barra geral */}
+                                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
+                                        <span style={{ fontSize: '.65rem', fontWeight: 600, color: 'rgba(238,242,248,.3)', textTransform: 'uppercase', letterSpacing: '.08em' }}>
+                                          Progresso geral
+                                        </span>
+                                        <span style={{ fontSize: '.7rem', fontWeight: 700, color: '#EEF2F8' }}>{gPct}%</span>
+                                      </div>
+                                      <div style={{ height: 5, background: 'rgba(255,255,255,.05)', borderRadius: 4, overflow: 'hidden', marginBottom: 6 }}>
+                                        <div style={{ width: `${gPct}%`, height: '100%', background: gPct === 100 ? '#4ADE80' : '#3D7BFF', borderRadius: 4, transition: 'width .5s ease' }} />
+                                      </div>
+                                      {/* Mini barras por time */}
+                                      <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                                        {TEAMS.map(team => {
+                                          const ti  = all.filter(i => i.category === team.key);
+                                          const tp  = ti.length ? Math.round(ti.filter(i => i.done).length / ti.length * 100) : 0;
+                                          return (
+                                            <div key={team.key} style={{ flex: 1 }}>
+                                              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                                                <span style={{ fontSize: '.58rem', fontWeight: 700, color: team.color }}>{team.label}</span>
+                                                <span style={{ fontSize: '.58rem', fontWeight: 600, color: 'rgba(238,242,248,.35)' }}>{ti.length > 0 ? `${tp}%` : '—'}</span>
+                                              </div>
+                                              <div style={{ height: 3, background: 'rgba(255,255,255,.05)', borderRadius: 2, overflow: 'hidden' }}>
+                                                <div style={{ width: `${tp}%`, height: '100%', background: team.color, borderRadius: 2, transition: 'width .5s ease', opacity: .75 }} />
+                                              </div>
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
+                                      <div style={{ fontSize: '.62rem', color: 'rgba(238,242,248,.2)', marginTop: 8 }}>
+                                        {done} de {all.length} itens concluídos
+                                      </div>
+                                    </div>
+                                  );
+                                }
                                 const t       = TEAMS.find(t => t.key === activeTab)!;
                                 const tItems  = activeEdicao.checklist.filter(i => i.category === activeTab);
                                 const tDone   = tItems.filter(i => i.done).length;
@@ -722,54 +796,87 @@ export default function EventosList() {
                                 ) : null;
                               })()}
 
-                              {/* Lista filtrada pela aba */}
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
-                                {activeEdicao.checklist.filter(i => i.category === activeTab).length === 0 && (
-                                  <div style={{ textAlign: 'center', padding: '2rem', color: 'rgba(238,242,248,.25)', fontSize: '.78rem' }}>
-                                    Nenhum item para {TEAMS.find(t => t.key === activeTab)?.label ?? activeTab}.<br/>
-                                    <span style={{ fontSize: '.7rem', color: 'rgba(238,242,248,.18)' }}>Adicione abaixo.</span>
+                              {/* Lista de itens */}
+                              {(() => {
+                                const visibleItems = activeTab === 'geral'
+                                  ? activeEdicao.checklist
+                                  : activeEdicao.checklist.filter(i => i.category === activeTab);
+                                return (
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
+                                    {visibleItems.length === 0 && (
+                                      <div style={{ textAlign: 'center', padding: '2rem', color: 'rgba(238,242,248,.25)', fontSize: '.78rem' }}>
+                                        {activeTab === 'geral' ? 'Nenhum item ainda.' : `Nenhum item para ${TEAMS.find(t => t.key === activeTab)?.label ?? activeTab}.`}<br/>
+                                        <span style={{ fontSize: '.7rem', color: 'rgba(238,242,248,.18)' }}>Adicione abaixo.</span>
+                                      </div>
+                                    )}
+                                    {visibleItems.map(item => {
+                                      const teamCfg = TEAMS.find(t => t.key === item.category);
+                                      return (
+                                        <div key={item.id} className="ev-check-row" style={{
+                                          display: 'flex', alignItems: 'center', gap: 10,
+                                          padding: '10px 14px', borderRadius: 12,
+                                          background: item.done ? 'rgba(74,222,128,.04)' : 'rgba(255,255,255,.03)',
+                                          border: `1px solid ${item.done ? 'rgba(74,222,128,.12)' : 'rgba(255,255,255,.05)'}`,
+                                          transition: 'background .15s',
+                                        }}>
+                                          <button onClick={() => toggleItem(item)} style={{
+                                            width: 18, height: 18, borderRadius: 5, flexShrink: 0, cursor: 'pointer',
+                                            background: item.done ? '#4ADE80' : 'transparent',
+                                            border: `2px solid ${item.done ? '#4ADE80' : 'rgba(255,255,255,.14)'}`,
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all .15s',
+                                          }}>
+                                            {item.done && <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" width="10" height="10"><polyline points="20 6 9 17 4 12"/></svg>}
+                                          </button>
+                                          <span style={{ flex: 1, fontSize: '.78rem', fontWeight: 500, color: item.done ? 'rgba(238,242,248,.3)' : '#EEF2F8', textDecoration: item.done ? 'line-through' : 'none' }}>
+                                            {item.name}
+                                          </span>
+                                          {/* Tag do time visível na aba Geral */}
+                                          {activeTab === 'geral' && teamCfg && (
+                                            <span style={{
+                                              fontSize: '.58rem', fontWeight: 700, padding: '2px 7px', borderRadius: 5,
+                                              background: `${teamCfg.color}14`, color: teamCfg.color, flexShrink: 0,
+                                            }}>
+                                              {teamCfg.label}
+                                            </span>
+                                          )}
+                                          <button onClick={() => removerItem(item.id)} style={{
+                                            background: 'none', border: 'none', cursor: 'pointer',
+                                            color: 'rgba(238,242,248,.18)', display: 'flex', padding: 2, flexShrink: 0,
+                                            transition: 'color .15s',
+                                          }}
+                                            onMouseEnter={e => (e.currentTarget.style.color = '#FF6B6B')}
+                                            onMouseLeave={e => (e.currentTarget.style.color = 'rgba(238,242,248,.18)')}
+                                          >
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" width="13" height="13">
+                                              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                                            </svg>
+                                          </button>
+                                        </div>
+                                      );
+                                    })}
                                   </div>
-                                )}
-                                {activeEdicao.checklist.filter(i => i.category === activeTab).map(item => (
-                                  <div key={item.id} className="ev-check-row" style={{
-                                    display: 'flex', alignItems: 'center', gap: 10,
-                                    padding: '10px 14px', borderRadius: 12,
-                                    background: item.done ? 'rgba(74,222,128,.04)' : 'rgba(255,255,255,.03)',
-                                    border: `1px solid ${item.done ? 'rgba(74,222,128,.12)' : 'rgba(255,255,255,.05)'}`,
-                                    transition: 'background .15s',
-                                  }}>
-                                    <button onClick={() => toggleItem(item)} style={{
-                                      width: 18, height: 18, borderRadius: 5, flexShrink: 0, cursor: 'pointer',
-                                      background: item.done ? '#4ADE80' : 'transparent',
-                                      border: `2px solid ${item.done ? '#4ADE80' : 'rgba(255,255,255,.14)'}`,
-                                      display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all .15s',
-                                    }}>
-                                      {item.done && <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" width="10" height="10"><polyline points="20 6 9 17 4 12"/></svg>}
-                                    </button>
-                                    <span style={{ flex: 1, fontSize: '.78rem', fontWeight: 500, color: item.done ? 'rgba(238,242,248,.3)' : '#EEF2F8', textDecoration: item.done ? 'line-through' : 'none' }}>
-                                      {item.name}
-                                    </span>
-                                    <button onClick={() => removerItem(item.id)} style={{
-                                      background: 'none', border: 'none', cursor: 'pointer',
-                                      color: 'rgba(238,242,248,.18)', display: 'flex', padding: 2, flexShrink: 0,
-                                      transition: 'color .15s',
-                                    }}
-                                      onMouseEnter={e => (e.currentTarget.style.color = '#FF6B6B')}
-                                      onMouseLeave={e => (e.currentTarget.style.color = 'rgba(238,242,248,.18)')}
-                                    >
-                                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" width="13" height="13">
-                                        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                                      </svg>
-                                    </button>
-                                  </div>
-                                ))}
-                              </div>
+                                );
+                              })()}
 
-                              {/* Input — categoria fixada na aba ativa */}
+                              {/* Input — seletor de time quando na aba Geral */}
                               <div style={{ display: 'flex', gap: 8 }}>
+                                {activeTab === 'geral' && (
+                                  <select
+                                    value={novoItemCat}
+                                    onChange={e => setNovoItemCat(e.target.value)}
+                                    style={{
+                                      ...inputStyle, width: 'auto', paddingLeft: 10, paddingRight: 10,
+                                      flexShrink: 0, fontSize: '.72rem', cursor: 'pointer',
+                                    }}
+                                  >
+                                    {TEAMS.map(t => <option key={t.key} value={t.key}>{t.label}</option>)}
+                                  </select>
+                                )}
                                 <input
                                   className="ev-input"
-                                  placeholder={`Novo item para ${TEAMS.find(t => t.key === activeTab)?.label ?? activeTab}...`}
+                                  placeholder={activeTab === 'geral'
+                                    ? `Novo item para ${TEAMS.find(t => t.key === novoItemCat)?.label ?? novoItemCat}...`
+                                    : `Novo item para ${TEAMS.find(t => t.key === activeTab)?.label ?? activeTab}...`}
                                   value={novoItem}
                                   onChange={e => setNovoItem(e.target.value)}
                                   onKeyDown={e => e.key === 'Enter' && adicionarItem()}
