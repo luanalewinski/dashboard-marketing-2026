@@ -3,75 +3,117 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { getListTasks, CUTask, getStatusStyle } from '../../lib/clickup';
 
-// ── Tipos ─────────────────────────────────────────────────────────────
+// ── Tipos ──────────────────────────────────────────────────────────────
 interface ChecklistItem {
-  id: string;
-  name: string;
-  done: boolean;
-  category: string;
-  order_index: number;
+  id: string; name: string; done: boolean; category: string; order_index: number;
 }
-
 interface EventoLink {
-  id: string;
-  type: string;
-  label: string;
-  url: string;
+  id: string; type: string; label: string; url: string;
 }
-
 interface Edicao {
-  id: string;
-  evento_id: string;
-  year: number;
+  id: string; evento_id: string; year: number;
   status: 'planejamento' | 'em_andamento' | 'concluido';
-  notes: string | null;
-  clickup_list_id: string | null;
-  checklist: ChecklistItem[];
-  links: EventoLink[];
+  notes: string | null; clickup_list_id: string | null;
+  checklist: ChecklistItem[]; links: EventoLink[];
 }
-
 interface Evento {
-  id: string;
-  name: string;
-  description: string | null;
-  category: string | null;
-  is_recurring: boolean;
-  editions: Edicao[];
+  id: string; name: string; description: string | null;
+  category: string | null; is_recurring: boolean; editions: Edicao[];
 }
 
-// ── Config visual ─────────────────────────────────────────────────────
+// ── Config visual ──────────────────────────────────────────────────────
 const STATUS_CFG = {
-  planejamento: { label: 'Planejamento', color: 'var(--nova-text-dim)', bg: 'rgba(93,104,128,.15)' },
-  em_andamento: { label: 'Em andamento', color: '#3D7BFF',             bg: 'rgba(61,123,255,.12)' },
-  concluido:    { label: 'Concluído',    color: '#4ADE80',             bg: 'rgba(74,222,128,.12)' },
+  planejamento: { label: 'Planejamento', color: 'rgba(238,242,248,.45)', bg: 'rgba(255,255,255,.06)', border: 'rgba(255,255,255,.1)' },
+  em_andamento: { label: 'Em andamento', color: '#3D7BFF',              bg: 'rgba(61,123,255,.1)',    border: 'rgba(61,123,255,.25)' },
+  concluido:    { label: 'Concluído',    color: '#4ADE80',              bg: 'rgba(74,222,128,.1)',    border: 'rgba(74,222,128,.25)' },
 };
-
 const CAT_CFG: Record<string, { label: string; color: string }> = {
   design:    { label: 'Design',    color: '#3D7BFF' },
   copy:      { label: 'Copy',      color: '#6F9BFF' },
   logistica: { label: 'Logística', color: '#FBBF24' },
   aprovacao: { label: 'Aprovação', color: '#4ADE80' },
-  outro:     { label: 'Outro',     color: '#9AA6BA' },
+  outro:     { label: 'Outro',     color: 'rgba(238,242,248,.3)' },
 };
-
 const LINK_CFG: Record<string, { label: string; color: string; letter: string }> = {
   drive:  { label: 'Drive',  color: '#4ADE80', letter: 'G' },
   figma:  { label: 'Figma',  color: '#3D7BFF', letter: 'F' },
   form:   { label: 'Form',   color: '#6F9BFF', letter: 'F' },
   site:   { label: 'Site',   color: '#FBBF24', letter: 'S' },
   social: { label: 'Social', color: '#FBBF24', letter: 'S' },
-  outro:  { label: 'Link',   color: '#9AA6BA', letter: '↗' },
+  outro:  { label: 'Link',   color: 'rgba(238,242,248,.3)', letter: '↗' },
 };
-
-const CATEGORIES = ['design', 'copy', 'logistica', 'aprovacao', 'outro'];
-const LINK_TYPES  = ['drive', 'figma', 'form', 'site', 'social', 'outro'];
+const CATEGORIES = ['design','copy','logistica','aprovacao','outro'];
+const LINK_TYPES  = ['drive','figma','form','site','social','outro'];
 
 function pct(items: ChecklistItem[]) {
   if (!items.length) return 0;
   return Math.round((items.filter(i => i.done).length / items.length) * 100);
 }
 
-// ── Componente ────────────────────────────────────────────────────────
+// ── Skeleton igual ao Dashboard ────────────────────────────────────────
+function Skel({ w, h, r = 8 }: { w: number | string; h: number; r?: number }) {
+  return (
+    <div style={{
+      width: w, height: h, borderRadius: r,
+      background: 'linear-gradient(90deg, rgba(255,255,255,.04) 0%, rgba(255,255,255,.08) 50%, rgba(255,255,255,.04) 100%)',
+      backgroundSize: '200% 100%', animation: 'shimmer 1.8s ease-in-out infinite',
+    }} />
+  );
+}
+
+// ── Botão primário (idêntico ao Dashboard) ─────────────────────────────
+function BtnPrimary({ onClick, children, disabled }: { onClick?: () => void; children: React.ReactNode; disabled?: boolean }) {
+  return (
+    <button onClick={onClick} disabled={disabled} style={{
+      display: 'inline-flex', alignItems: 'center', gap: 7,
+      padding: '9px 16px', borderRadius: 10,
+      background: disabled ? 'rgba(61,123,255,.4)' : '#3D7BFF', color: '#fff',
+      fontSize: '.78rem', fontWeight: 700, border: 'none', cursor: disabled ? 'not-allowed' : 'pointer',
+      transition: 'opacity .15s', flexShrink: 0,
+    }}
+      onMouseEnter={e => { if (!disabled) (e.currentTarget as HTMLElement).style.opacity = '.85'; }}
+      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.opacity = '1'; }}
+    >
+      {children}
+    </button>
+  );
+}
+
+// ── Botão ghost ────────────────────────────────────────────────────────
+function BtnGhost({ onClick, children, disabled }: { onClick?: () => void; children: React.ReactNode; disabled?: boolean }) {
+  return (
+    <button onClick={onClick} disabled={disabled} style={{
+      display: 'inline-flex', alignItems: 'center', gap: 6,
+      padding: '7px 13px', borderRadius: 8,
+      border: '1px solid rgba(255,255,255,.09)', background: 'transparent',
+      color: 'rgba(238,242,248,.5)', fontSize: '.75rem', fontWeight: 600,
+      cursor: disabled ? 'not-allowed' : 'pointer', transition: 'all .15s',
+    }}
+      onMouseEnter={e => { if (!disabled) { (e.currentTarget as HTMLElement).style.color = 'rgba(238,242,248,.85)'; (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,.18)'; } }}
+      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = 'rgba(238,242,248,.5)'; (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,.09)'; }}
+    >
+      {children}
+    </button>
+  );
+}
+
+// ── Input premium ──────────────────────────────────────────────────────
+const inputStyle: React.CSSProperties = {
+  background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.08)',
+  borderRadius: 10, padding: '8px 12px', color: '#EEF2F8', fontSize: '.78rem',
+  outline: 'none', width: '100%', fontFamily: 'inherit',
+};
+
+// ── Badge ──────────────────────────────────────────────────────────────
+function Badge({ color, bg, border, children }: { color: string; bg: string; border: string; children: React.ReactNode }) {
+  return (
+    <span style={{ fontSize: '.62rem', fontWeight: 700, color, background: bg, border: `1px solid ${border}`, borderRadius: 20, padding: '3px 9px', whiteSpace: 'nowrap', flexShrink: 0 }}>
+      {children}
+    </span>
+  );
+}
+
+// ── Componente principal ───────────────────────────────────────────────
 export default function EventosList() {
   const { eventId, year } = useParams<{ eventId?: string; year?: string }>();
   const navigate = useNavigate();
@@ -79,8 +121,6 @@ export default function EventosList() {
   const [eventos, setEventos]   = useState<Evento[]>([]);
   const [loading, setLoading]   = useState(true);
   const [search, setSearch]     = useState('');
-
-  // ClickUp tasks para edição com clickup_list_id
   const [cuTasks, setCuTasks]   = useState<CUTask[]>([]);
   const [cuLoading, setCuLoading] = useState(false);
 
@@ -88,111 +128,85 @@ export default function EventosList() {
   const activeYear   = year ? parseInt(year) : activeEvento?.editions[0]?.year;
   const activeEdicao = activeEvento?.editions.find(e => e.year === activeYear) ?? activeEvento?.editions[0] ?? null;
 
-  // modais
   const [showNovoEvento, setShowNovoEvento] = useState(false);
   const [novoNome, setNovoNome]             = useState('');
   const [novoDesc, setNovoDesc]             = useState('');
   const [saving, setSaving]                 = useState(false);
-
   const [showNovaEdicao, setShowNovaEdicao] = useState(false);
   const [novoAno, setNovoAno]               = useState(new Date().getFullYear());
+  const [novoItem, setNovoItem]             = useState('');
+  const [novoItemCat, setNovoItemCat]       = useState('outro');
+  const [showNovoLink, setShowNovoLink]     = useState(false);
+  const [novoLinkType, setNovoLinkType]     = useState('drive');
+  const [novoLinkLabel, setNovoLinkLabel]   = useState('');
+  const [novoLinkUrl, setNovoLinkUrl]       = useState('');
 
-  const [novoItem, setNovoItem]     = useState('');
-  const [novoItemCat, setNovoItemCat] = useState('outro');
-
-  const [showNovoLink, setShowNovoLink] = useState(false);
-  const [novoLinkType, setNovoLinkType]   = useState('drive');
-  const [novoLinkLabel, setNovoLinkLabel] = useState('');
-  const [novoLinkUrl, setNovoLinkUrl]     = useState('');
-
-  // ── Carregar dados Supabase ───────────────────────────────────────
+  // ── Load Supabase ────────────────────────────────────────────────────
   const load = useCallback(async () => {
     setLoading(true);
     const { data: evs, error } = await supabase
       .from('eventos')
-      .select(`
-        id, name, description, category, is_recurring,
-        evento_edicoes (
-          id, evento_id, year, status, notes, clickup_list_id,
+      .select(`id, name, description, category, is_recurring,
+        evento_edicoes ( id, evento_id, year, status, notes, clickup_list_id,
           evento_checklist_items ( id, name, done, category, order_index ),
-          evento_links            ( id, type, label, url )
-        )
-      `)
+          evento_links            ( id, type, label, url ) )`)
       .order('created_at', { ascending: false });
-
     if (error) { console.error(error); setLoading(false); return; }
-
     const mapped: Evento[] = (evs ?? []).map((ev: any) => ({
       ...ev,
       editions: (ev.evento_edicoes ?? [])
         .sort((a: any, b: any) => b.year - a.year)
         .map((ed: any) => ({
-          ...ed,
-          clickup_list_id: ed.clickup_list_id ?? null,
+          ...ed, clickup_list_id: ed.clickup_list_id ?? null,
           checklist: (ed.evento_checklist_items ?? []).sort((a: any, b: any) => a.order_index - b.order_index),
-          links:     ed.evento_links ?? [],
+          links: ed.evento_links ?? [],
         })),
     }));
-
     setEventos(mapped);
     setLoading(false);
   }, []);
 
   useEffect(() => { load(); }, [load]);
 
-  // ── Carregar tarefas ClickUp quando edição tem lista vinculada ────
   useEffect(() => {
     if (!activeEdicao?.clickup_list_id) { setCuTasks([]); return; }
     setCuLoading(true);
     getListTasks(activeEdicao.clickup_list_id, 0, true)
-      .then(setCuTasks)
-      .catch(console.error)
-      .finally(() => setCuLoading(false));
+      .then(setCuTasks).catch(console.error).finally(() => setCuLoading(false));
   }, [activeEdicao?.clickup_list_id]);
 
-  // ── CRUD Evento ───────────────────────────────────────────────────
+  // ── CRUD ─────────────────────────────────────────────────────────────
   async function criarEvento() {
     if (!novoNome.trim()) return;
     setSaving(true);
-    const { data, error } = await supabase
-      .from('eventos')
+    const { data, error } = await supabase.from('eventos')
       .insert({ name: novoNome.trim(), description: novoDesc.trim() || null, is_recurring: true })
-      .select('id')
-      .single();
+      .select('id').single();
     setSaving(false);
     if (error) { alert('Erro ao criar evento: ' + error.message); return; }
     setShowNovoEvento(false); setNovoNome(''); setNovoDesc('');
-    await load();
-    navigate(`/eventos/${data.id}`);
+    await load(); navigate(`/eventos/${data.id}`);
   }
 
-  // ── CRUD Edição ───────────────────────────────────────────────────
   async function criarEdicao() {
     if (!activeEvento) return;
     setSaving(true);
-    const { data, error } = await supabase
-      .from('evento_edicoes')
+    const { data, error } = await supabase.from('evento_edicoes')
       .insert({ evento_id: activeEvento.id, year: novoAno, status: 'planejamento' })
-      .select('id')
-      .single();
+      .select('id').single();
     setSaving(false);
     if (error) { alert('Edição ' + novoAno + ' já existe ou erro: ' + error.message); return; }
     setShowNovaEdicao(false);
-    await load();
-    navigate(`/eventos/${activeEvento.id}/${novoAno}`);
+    await load(); navigate(`/eventos/${activeEvento.id}/${novoAno}`);
     return data;
   }
 
-  // ── CRUD Checklist (manual — apenas edições sem ClickUp) ─────────
   async function adicionarItem() {
     if (!activeEdicao || !novoItem.trim() || activeEdicao.clickup_list_id) return;
-    const nextOrder = activeEdicao.checklist.length;
-    const { error } = await supabase
-      .from('evento_checklist_items')
-      .insert({ edicao_id: activeEdicao.id, name: novoItem.trim(), category: novoItemCat, order_index: nextOrder });
+    const { error } = await supabase.from('evento_checklist_items')
+      .insert({ edicao_id: activeEdicao.id, name: novoItem.trim(), category: novoItemCat, order_index: activeEdicao.checklist.length });
     if (error) { alert('Erro: ' + error.message); return; }
-    setNovoItem('');
-    await load();
+    setNovoItem(''); await load();
   }
 
   async function toggleItem(item: ChecklistItem) {
@@ -219,17 +233,14 @@ export default function EventosList() {
     await load();
   }
 
-  // ── CRUD Links ────────────────────────────────────────────────────
   async function adicionarLink() {
     if (!activeEdicao || !novoLinkLabel.trim() || !novoLinkUrl.trim()) return;
     setSaving(true);
-    const { error } = await supabase
-      .from('evento_links')
+    const { error } = await supabase.from('evento_links')
       .insert({ edicao_id: activeEdicao.id, type: novoLinkType, label: novoLinkLabel.trim(), url: novoLinkUrl.trim() });
     setSaving(false);
     if (error) { alert('Erro: ' + error.message); return; }
-    setShowNovoLink(false); setNovoLinkLabel(''); setNovoLinkUrl('');
-    await load();
+    setShowNovoLink(false); setNovoLinkLabel(''); setNovoLinkUrl(''); await load();
   }
 
   async function removerLink(linkId: string) {
@@ -237,7 +248,7 @@ export default function EventosList() {
     await load();
   }
 
-  // ── Calcular progresso ────────────────────────────────────────────
+  // ── Progresso ─────────────────────────────────────────────────────────
   const isClickUp  = !!activeEdicao?.clickup_list_id;
   const cuDone     = cuTasks.filter(t => t.status.type === 'closed').length;
   const progresso  = isClickUp
@@ -248,487 +259,710 @@ export default function EventosList() {
     ? cuTasks.filter(t => t.status.type !== 'closed').length
     : (activeEdicao?.checklist.filter(i => !i.done).length ?? 0);
   const totalItems = isClickUp ? cuTasks.length : (activeEdicao?.checklist.length ?? 0);
+  const filtered   = eventos.filter(e => e.name.toLowerCase().includes(search.toLowerCase()));
 
-  const filtered = eventos.filter(e => e.name.toLowerCase().includes(search.toLowerCase()));
+  const sCfg = activeEdicao ? STATUS_CFG[activeEdicao.status] : null;
 
+  // ── Render ─────────────────────────────────────────────────────────────
   return (
-    <div style={{ display: 'flex', gap: '1rem', height: 'calc(100vh - 5.5rem)', minHeight: 0 }}>
+    <>
+      <style>{`
+        @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+        @keyframes fadeUp  { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+        .ev-card { animation: fadeUp .35s ease both; }
+        .ev-input:focus { border-color: rgba(61,123,255,.4) !important; outline: none; }
+        .ev-list-item:hover { background: rgba(255,255,255,.04) !important; }
+        .ev-check-row:hover { background: rgba(255,255,255,.05) !important; }
+      `}</style>
 
-      {/* ── Coluna esquerda ── */}
-      <aside style={{
-        width: 256, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '.5rem',
-        background: 'var(--nova-bg-elev)', border: '1px solid var(--nova-border)',
-        borderRadius: '1rem', padding: '.875rem', overflowY: 'auto',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '.25rem' }}>
-          <span style={{ fontSize: '.6875rem', fontWeight: 700, color: 'var(--nova-text-dim)', textTransform: 'uppercase', letterSpacing: '.07em' }}>Eventos</span>
-          <button className="btn-blue" onClick={() => setShowNovoEvento(true)}
-            style={{ padding: '.2rem .5rem', fontSize: '.6875rem', display: 'flex', alignItems: 'center', gap: '.25rem' }}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" width="10" height="10">
+      <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+
+        {/* ── PAGE HEADER ─────────────────────────────────────────────── */}
+        <div style={{ marginBottom: 28, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
+          <div>
+            <div style={{ fontSize: '.65rem', fontWeight: 600, color: 'rgba(238,242,248,.25)', textTransform: 'uppercase', letterSpacing: '.12em', marginBottom: 6 }}>
+              Sprint Q3 · 2026
+            </div>
+            <h1 style={{ fontSize: '1.625rem', fontWeight: 800, color: '#EEF2F8', letterSpacing: '-.04em', lineHeight: 1 }}>
+              Eventos
+            </h1>
+          </div>
+          <BtnPrimary onClick={() => setShowNovoEvento(true)}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="13" height="13">
               <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
             </svg>
-            Novo
-          </button>
+            Novo Evento
+          </BtnPrimary>
         </div>
 
-        <input className="nova-input" placeholder="Buscar..." value={search}
-          onChange={e => setSearch(e.target.value)} style={{ fontSize: '.8125rem', marginBottom: '.25rem' }} />
+        {/* ── BENTO GRID ──────────────────────────────────────────────── */}
+        <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: 14, alignItems: 'start' }}>
 
-        {loading ? (
-          [1,2,3].map(i => (
-            <div key={i} style={{ height: 56, borderRadius: '.75rem', background: 'rgba(255,255,255,.04)', animation: 'pulse 1.5s ease-in-out infinite' }} />
-          ))
-        ) : filtered.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '2rem 1rem', color: 'var(--nova-text-dim)', fontSize: '.8125rem' }}>
-            {search ? 'Nenhum resultado.' : 'Nenhum evento ainda.\nCrie o primeiro.'}
-          </div>
-        ) : (
-          filtered.map(ev => {
-            const last  = ev.editions[0];
-            const active = activeEvento?.id === ev.id;
-            const sCfg  = last ? STATUS_CFG[last.status] : null;
-            const hasClickUp = ev.editions.some(e => e.clickup_list_id);
-            return (
-              <button key={ev.id} onClick={() => navigate(`/eventos/${ev.id}`)} style={{
-                display: 'flex', flexDirection: 'column', gap: '.25rem',
-                padding: '.625rem .75rem', borderRadius: '.75rem', border: 'none', cursor: 'pointer', textAlign: 'left',
-                background: active ? 'rgba(61,123,255,.1)' : 'rgba(255,255,255,.03)',
-                borderLeft: `3px solid ${active ? '#3D7BFF' : 'transparent'}`,
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '.5rem' }}>
-                  <span style={{ fontSize: '.8125rem', fontWeight: 600, color: active ? '#3D7BFF' : 'var(--nova-text)' }}>
-                    {ev.name}
-                  </span>
-                  <div style={{ display: 'flex', gap: '.25rem', flexShrink: 0 }}>
-                    {hasClickUp && (
-                      <span style={{ fontSize: '.5rem', fontWeight: 700, color: '#3D7BFF', background: 'rgba(61,123,255,.15)', padding: '.1rem .3rem', borderRadius: '2rem', textTransform: 'uppercase', letterSpacing: '.04em' }}>
-                        CU
-                      </span>
-                    )}
-                    {ev.is_recurring && (
-                      <span style={{ fontSize: '.5625rem', fontWeight: 700, color: 'var(--nova-text-dim)', background: 'rgba(93,104,128,.15)', padding: '.1rem .35rem', borderRadius: '2rem', textTransform: 'uppercase', letterSpacing: '.05em' }}>
-                        Anual
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '.375rem' }}>
-                  <span style={{ fontSize: '.6875rem', color: 'var(--nova-text-dim)' }}>
-                    {ev.editions.length} edição{ev.editions.length !== 1 ? 'ões' : ''}
-                  </span>
-                  {sCfg && (
-                    <span style={{ fontSize: '.625rem', fontWeight: 600, color: sCfg.color, background: sCfg.bg, padding: '.1rem .4rem', borderRadius: '2rem', flexShrink: 0 }}>
-                      {sCfg.label}
-                    </span>
-                  )}
-                </div>
-              </button>
-            );
-          })
-        )}
-      </aside>
-
-      {/* ── Coluna direita ── */}
-      <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem', minWidth: 0 }}>
-
-        {!activeEvento && !loading ? (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-            <div className="glass-card" style={{ padding: '3rem 2rem', textAlign: 'center', maxWidth: 360 }}>
-              <div style={{ fontSize: '2rem', marginBottom: '.75rem' }}>🗓️</div>
-              <div style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--nova-text)', marginBottom: '.5rem' }}>Selecione um evento</div>
-              <div style={{ fontSize: '.8125rem', color: 'var(--nova-text-dim)' }}>Clique em um evento na lista para ver edições e detalhes.</div>
-            </div>
-          </div>
-        ) : activeEvento ? (
-          <>
-            {/* Header */}
-            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
-              <div>
-                <h1 style={{ fontSize: '1.375rem', fontWeight: 700, color: 'var(--nova-text)', marginBottom: '.25rem' }}>{activeEvento.name}</h1>
-                {activeEvento.description && (
-                  <p style={{ fontSize: '.875rem', color: 'var(--nova-text-dim)', maxWidth: 520 }}>{activeEvento.description}</p>
-                )}
-              </div>
-              <button className="btn-primary" onClick={() => setShowNovaEdicao(true)} style={{ flexShrink: 0 }}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" width="14" height="14">
-                  <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-                </svg>
-                Nova Edição
-              </button>
+          {/* ══ PAINEL ESQUERDO — lista de eventos ══════════════════════ */}
+          <div className="ev-card" style={{
+            background: '#0B0D1A', borderRadius: 24, padding: '22px 20px',
+            border: '1px solid rgba(255,255,255,.05)',
+            display: 'flex', flexDirection: 'column', gap: 12,
+            animationDelay: '0s',
+            position: 'sticky', top: 80,
+          }}>
+            {/* Header painel */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: '.6rem', fontWeight: 700, color: 'rgba(238,242,248,.22)', textTransform: 'uppercase', letterSpacing: '.12em' }}>
+                Todos os eventos
+              </span>
+              <span style={{ fontSize: '.62rem', fontWeight: 700, color: 'rgba(238,242,248,.3)', background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.08)', borderRadius: 20, padding: '2px 8px' }}>
+                {filtered.length}
+              </span>
             </div>
 
-            {activeEvento.editions.length === 0 ? (
-              <div className="glass-card" style={{ padding: '2.5rem', textAlign: 'center' }}>
-                <div style={{ fontSize: '.9375rem', fontWeight: 600, color: 'var(--nova-text)', marginBottom: '.5rem' }}>Nenhuma edição cadastrada.</div>
-                <button className="btn-blue" onClick={() => setShowNovaEdicao(true)} style={{ marginTop: '.75rem' }}>Criar primeira edição</button>
-              </div>
-            ) : (
-              <>
-                {/* Timeline horizontal */}
-                <div className="glass-card" style={{ padding: '1.125rem 1.25rem' }}>
-                  <div style={{ fontSize: '.6875rem', fontWeight: 700, color: 'var(--nova-text-dim)', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: '.875rem' }}>
-                    Edições
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', overflowX: 'auto', paddingBottom: '.25rem' }}>
-                    {[...activeEvento.editions].sort((a, b) => a.year - b.year).map((ed, i, arr) => {
-                      const sel = activeEdicao?.id === ed.id;
-                      const p   = pct(ed.checklist);
-                      return (
-                        <div key={ed.id} style={{ display: 'flex', alignItems: 'center' }}>
-                          <button onClick={() => navigate(`/eventos/${activeEvento.id}/${ed.year}`)} style={{
-                            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '.375rem',
-                            background: 'none', border: 'none', cursor: 'pointer', padding: '.25rem .625rem',
-                          }}>
-                            <div style={{
-                              width: 38, height: 38, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              fontWeight: 700, fontSize: '.75rem',
-                              background: ed.status === 'concluido' ? 'rgba(74,222,128,.15)' : sel ? 'rgba(61,123,255,.18)' : 'rgba(93,104,128,.1)',
-                              border: `2px solid ${ed.status === 'concluido' ? '#4ADE80' : sel ? '#3D7BFF' : 'var(--nova-border)'}`,
-                              color:  ed.status === 'concluido' ? '#4ADE80' : sel ? '#3D7BFF' : 'var(--nova-text-dim)',
-                            }}>
-                              {ed.status === 'concluido' ? '✓' : String(ed.year).slice(2)}
-                            </div>
-                            <span style={{ fontSize: '.625rem', fontWeight: 600, color: sel ? '#3D7BFF' : 'var(--nova-text-dim)' }}>{ed.year}</span>
-                            {ed.clickup_list_id
-                              ? <span style={{ fontSize: '.5rem', color: '#3D7BFF', fontWeight: 700 }}>ClickUp</span>
-                              : ed.checklist.length > 0 && <span style={{ fontSize: '.5625rem', color: 'var(--nova-text-dim)' }}>{p}%</span>
-                            }
-                          </button>
-                          {i < arr.length - 1 && <div style={{ width: 32, height: 2, background: 'var(--nova-border)', flexShrink: 0 }} />}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
+            {/* Search */}
+            <div style={{ position: 'relative' }}>
+              <svg style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'rgba(238,242,248,.25)', pointerEvents: 'none' }}
+                viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" width="13" height="13">
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+              <input
+                className="ev-input"
+                placeholder="Buscar evento..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                style={{ ...inputStyle, paddingLeft: 32, fontSize: '.75rem' }}
+              />
+            </div>
 
-                {activeEdicao && (
-                  <>
-                    {/* KPI cards */}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
-                      {[
-                        { label: 'Checklist',       value: `${progresso}%`,  color: progresso === 100 ? '#4ADE80' : '#3D7BFF' },
-                        { label: 'Itens pendentes', value: pendentes,         color: pendentes > 0 ? '#FBBF24' : '#4ADE80' },
-                        { label: 'Links',           value: activeEdicao.links.length, color: '#6F9BFF' },
-                      ].map(kpi => (
-                        <div key={kpi.label} className="glass-card" style={{ padding: '1rem 1.125rem' }}>
-                          <div style={{ fontSize: '1.625rem', fontWeight: 700, color: kpi.color }}>{kpi.value}</div>
-                          <div style={{ fontSize: '.6875rem', fontWeight: 600, color: 'var(--nova-text-dim)', textTransform: 'uppercase', letterSpacing: '.06em', marginTop: '.25rem' }}>{kpi.label}</div>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Barra de progresso */}
-                    <div className="glass-card" style={{ padding: '1rem 1.25rem' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '.625rem', flexWrap: 'wrap', gap: '.5rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '.625rem' }}>
-                          <span style={{ fontSize: '.9rem', fontWeight: 600, color: 'var(--nova-text)' }}>
-                            {activeEvento.name} {activeEdicao.year}
-                          </span>
-                          <span style={{ fontSize: '.6875rem', fontWeight: 600, padding: '.2rem .625rem', borderRadius: '2rem', color: STATUS_CFG[activeEdicao.status].color, background: STATUS_CFG[activeEdicao.status].bg }}>
-                            {STATUS_CFG[activeEdicao.status].label}
-                          </span>
-                          {isClickUp && (
-                            <span style={{ fontSize: '.625rem', fontWeight: 700, color: '#3D7BFF', background: 'rgba(61,123,255,.12)', padding: '.15rem .5rem', borderRadius: '2rem' }}>
-                              ao vivo do ClickUp
+            {/* Lista */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 480, overflowY: 'auto', paddingRight: 2 }}>
+              {loading
+                ? [1,2,3].map(i => <Skel key={i} w="100%" h={60} r={14} />)
+                : filtered.length === 0
+                ? (
+                  <div style={{ textAlign: 'center', padding: '2rem 1rem', color: 'rgba(238,242,248,.25)', fontSize: '.78rem' }}>
+                    {search ? 'Nenhum resultado.' : 'Nenhum evento ainda.'}
+                  </div>
+                )
+                : filtered.map(ev => {
+                  const last    = ev.editions[0];
+                  const active  = activeEvento?.id === ev.id;
+                  const sCfgEv  = last ? STATUS_CFG[last.status] : null;
+                  const hasCU   = ev.editions.some(e => e.clickup_list_id);
+                  return (
+                    <button
+                      key={ev.id}
+                      className="ev-list-item"
+                      onClick={() => navigate(`/eventos/${ev.id}`)}
+                      style={{
+                        display: 'flex', flexDirection: 'column', gap: 6,
+                        padding: '12px 14px', borderRadius: 14,
+                        border: `1px solid ${active ? 'rgba(61,123,255,.3)' : 'rgba(255,255,255,.04)'}`,
+                        background: active ? 'rgba(61,123,255,.1)' : 'transparent',
+                        cursor: 'pointer', textAlign: 'left', transition: 'all .15s',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+                        <span style={{ fontSize: '.8rem', fontWeight: 600, color: active ? '#3D7BFF' : '#EEF2F8', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {ev.name}
+                        </span>
+                        <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+                          {hasCU && (
+                            <span style={{ fontSize: '.5rem', fontWeight: 800, color: '#3D7BFF', background: 'rgba(61,123,255,.15)', border: '1px solid rgba(61,123,255,.25)', padding: '1px 5px', borderRadius: 20, textTransform: 'uppercase', letterSpacing: '.04em' }}>
+                              CU
+                            </span>
+                          )}
+                          {ev.is_recurring && (
+                            <span style={{ fontSize: '.5rem', fontWeight: 700, color: 'rgba(238,242,248,.3)', background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.08)', padding: '1px 5px', borderRadius: 20, textTransform: 'uppercase', letterSpacing: '.04em' }}>
+                              Anual
                             </span>
                           )}
                         </div>
-                        <span style={{ fontSize: '.75rem', color: 'var(--nova-text-dim)' }}>{feitos} de {totalItems} itens</span>
                       </div>
-                      <div style={{ height: 8, borderRadius: 4, background: 'rgba(255,255,255,.06)', overflow: 'hidden' }}>
-                        <div style={{ width: `${progresso}%`, height: '100%', background: progresso === 100 ? '#4ADE80' : '#3D7BFF', borderRadius: 4, transition: 'width .4s ease' }} />
-                      </div>
-                    </div>
-
-                    {/* Checklist */}
-                    <div className="glass-card" style={{ padding: '1.25rem' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap', gap: '.5rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem' }}>
-                          <span style={{ fontSize: '.875rem', fontWeight: 600, color: 'var(--nova-text)' }}>Checklist</span>
-                          {isClickUp && (
-                            <span style={{ fontSize: '.625rem', fontWeight: 700, color: '#3D7BFF', background: 'rgba(61,123,255,.1)', padding: '.15rem .5rem', borderRadius: '2rem', border: '1px solid rgba(61,123,255,.2)' }}>
-                              ClickUp
-                            </span>
-                          )}
-                        </div>
-                        {isClickUp ? (
-                          <a href={`https://app.clickup.com/36941541/v/l/${activeEdicao.clickup_list_id}`}
-                            target="_blank" rel="noopener noreferrer"
-                            style={{ fontSize: '.75rem', color: '#3D7BFF', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '.25rem' }}>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" width="12" height="12">
-                              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-                              <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
-                            </svg>
-                            Gerenciar no ClickUp
-                          </a>
-                        ) : (
-                          activeEdicao.checklist.length === 0 && activeEvento.editions.length > 1 && (
-                            <button className="btn-ghost" onClick={copiarChecklist} style={{ fontSize: '.75rem', display: 'flex', alignItems: 'center', gap: '.375rem' }}>
-                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" width="13" height="13">
-                                <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-                              </svg>
-                              Copiar do ano anterior
-                            </button>
-                          )
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ fontSize: '.68rem', color: 'rgba(238,242,248,.3)', fontWeight: 500 }}>
+                          {ev.editions.length} edição{ev.editions.length !== 1 ? 'ões' : ''}
+                        </span>
+                        {sCfgEv && (
+                          <Badge color={sCfgEv.color} bg={sCfgEv.bg} border={sCfgEv.border}>
+                            {sCfgEv.label}
+                          </Badge>
                         )}
                       </div>
+                    </button>
+                  );
+                })
+              }
+            </div>
+          </div>
 
-                      {/* Modo ClickUp: tarefas ao vivo */}
-                      {isClickUp ? (
-                        cuLoading ? (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '.375rem' }}>
-                            {[1,2,3,4,5].map(i => (
-                              <div key={i} style={{ height: 40, borderRadius: '.625rem', background: 'rgba(255,255,255,.04)', animation: 'pulse 1.5s ease-in-out infinite' }} />
-                            ))}
-                          </div>
-                        ) : cuTasks.length === 0 ? (
-                          <div style={{ textAlign: 'center', padding: '1.5rem', color: 'var(--nova-text-dim)', fontSize: '.8125rem' }}>
-                            Nenhuma tarefa encontrada nessa lista do ClickUp.
-                          </div>
-                        ) : (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '.375rem' }}>
-                            {cuTasks.map(task => {
-                              const done = task.status.type === 'closed';
-                              const st   = getStatusStyle(task);
-                              return (
-                                <div key={task.id} style={{
-                                  display: 'flex', alignItems: 'center', gap: '.625rem',
-                                  padding: '.5rem .75rem', borderRadius: '.625rem',
-                                  background: done ? 'rgba(74,222,128,.04)' : 'rgba(255,255,255,.03)',
-                                  border: `1px solid ${done ? 'rgba(74,222,128,.15)' : 'rgba(255,255,255,.06)'}`,
-                                }}>
-                                  <div style={{
-                                    width: 18, height: 18, borderRadius: 4, flexShrink: 0,
-                                    background: done ? '#4ADE80' : 'transparent',
-                                    border: `2px solid ${done ? '#4ADE80' : 'var(--nova-border)'}`,
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                  }}>
-                                    {done && <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" width="10" height="10"><polyline points="20 6 9 17 4 12"/></svg>}
-                                  </div>
-                                  <span style={{ flex: 1, fontSize: '.8125rem', color: done ? 'var(--nova-text-dim)' : 'var(--nova-text)', textDecoration: done ? 'line-through' : 'none' }}>
-                                    {task.name}
-                                  </span>
-                                  <span style={{ fontSize: '.625rem', fontWeight: 600, color: st.color, padding: '.1rem .45rem', borderRadius: '2rem', background: st.bg, flexShrink: 0, whiteSpace: 'nowrap' }}>
-                                    {st.label}
-                                  </span>
-                                  <a href={task.url} target="_blank" rel="noopener noreferrer"
-                                    style={{ color: '#3D7BFF', display: 'flex', flexShrink: 0 }}
-                                    title="Abrir no ClickUp">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" width="13" height="13">
-                                      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-                                      <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
-                                    </svg>
-                                  </a>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )
-                      ) : (
-                        /* Modo manual: checklist Supabase */
-                        <>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '.375rem', marginBottom: '1rem' }}>
-                            {activeEdicao.checklist.length === 0 && (
-                              <div style={{ textAlign: 'center', padding: '1.5rem', color: 'var(--nova-text-dim)', fontSize: '.8125rem' }}>
-                                Nenhum item ainda. Adicione abaixo ou copie do ano anterior.
-                              </div>
-                            )}
-                            {activeEdicao.checklist.map(item => {
-                              const cat = CAT_CFG[item.category] ?? CAT_CFG.outro;
-                              return (
-                                <div key={item.id} style={{
-                                  display: 'flex', alignItems: 'center', gap: '.625rem',
-                                  padding: '.5rem .75rem', borderRadius: '.625rem',
-                                  background: item.done ? 'rgba(74,222,128,.04)' : 'rgba(255,255,255,.03)',
-                                  border: `1px solid ${item.done ? 'rgba(74,222,128,.15)' : 'rgba(255,255,255,.06)'}`,
-                                }}>
-                                  <button onClick={() => toggleItem(item)} style={{
-                                    width: 18, height: 18, borderRadius: 4, flexShrink: 0, cursor: 'pointer',
-                                    background: item.done ? '#4ADE80' : 'transparent',
-                                    border: `2px solid ${item.done ? '#4ADE80' : 'var(--nova-border)'}`,
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                  }}>
-                                    {item.done && <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" width="10" height="10"><polyline points="20 6 9 17 4 12"/></svg>}
-                                  </button>
-                                  <span style={{ flex: 1, fontSize: '.8125rem', color: item.done ? 'var(--nova-text-dim)' : 'var(--nova-text)', textDecoration: item.done ? 'line-through' : 'none' }}>
-                                    {item.name}
-                                  </span>
-                                  <span style={{ fontSize: '.625rem', fontWeight: 600, color: cat.color, padding: '.1rem .45rem', borderRadius: '2rem', background: `${cat.color}18`, border: `1px solid ${cat.color}30`, flexShrink: 0 }}>
-                                    {cat.label}
-                                  </span>
-                                  <button onClick={() => removerItem(item.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--nova-text-dim)', display: 'flex', padding: '.1rem', flexShrink: 0 }}>
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" width="13" height="13">
-                                      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                                    </svg>
-                                  </button>
-                                </div>
-                              );
-                            })}
-                          </div>
+          {/* ══ PAINEL DIREITO — conteúdo do evento ═══════════════════ */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
-                          <div style={{ display: 'flex', gap: '.5rem', flexWrap: 'wrap' }}>
-                            <input className="nova-input" placeholder="Novo item..." value={novoItem}
-                              onChange={e => setNovoItem(e.target.value)}
-                              onKeyDown={e => e.key === 'Enter' && adicionarItem()}
-                              style={{ flex: 1, minWidth: 140, fontSize: '.8125rem' }} />
-                            <select className="nova-input" value={novoItemCat} onChange={e => setNovoItemCat(e.target.value)} style={{ width: 'auto', fontSize: '.8125rem' }}>
-                              {CATEGORIES.map(c => <option key={c} value={c}>{CAT_CFG[c]?.label ?? c}</option>)}
-                            </select>
-                            <button className="btn-primary" onClick={adicionarItem} disabled={!novoItem.trim()}>Adicionar</button>
-                          </div>
-                        </>
+            {!activeEvento && !loading ? (
+              /* Empty state */
+              <div className="ev-card" style={{
+                background: '#0B0D1A', borderRadius: 24, padding: '64px 32px',
+                border: '1px solid rgba(255,255,255,.05)', textAlign: 'center',
+                animationDelay: '.05s',
+              }}>
+                <div style={{ width: 48, height: 48, borderRadius: 14, background: 'rgba(61,123,255,.1)', border: '1px solid rgba(61,123,255,.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="#3D7BFF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" width="20" height="20">
+                    <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/>
+                    <line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                  </svg>
+                </div>
+                <div style={{ fontSize: '1rem', fontWeight: 700, color: '#EEF2F8', marginBottom: 8 }}>Selecione um evento</div>
+                <div style={{ fontSize: '.78rem', color: 'rgba(238,242,248,.35)', marginBottom: 24 }}>
+                  Clique em um evento na lista para ver edições e detalhes.
+                </div>
+                <BtnPrimary onClick={() => setShowNovoEvento(true)}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="13" height="13">
+                    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                  </svg>
+                  Criar primeiro evento
+                </BtnPrimary>
+              </div>
+            ) : activeEvento ? (
+              <>
+                {/* ── Event header ─────────────────────────────────────── */}
+                <div className="ev-card" style={{
+                  background: '#0B0D1A', borderRadius: 24, padding: '24px 28px',
+                  border: '1px solid rgba(255,255,255,.05)',
+                  display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16,
+                  animationDelay: '.05s',
+                }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+                      <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#EEF2F8', letterSpacing: '-.03em', margin: 0, lineHeight: 1 }}>
+                        {activeEvento.name}
+                      </h2>
+                      {activeEvento.is_recurring && (
+                        <Badge color="rgba(238,242,248,.4)" bg="rgba(255,255,255,.05)" border="rgba(255,255,255,.1)">Anual</Badge>
                       )}
                     </div>
+                    {activeEvento.description && (
+                      <p style={{ fontSize: '.78rem', color: 'rgba(238,242,248,.38)', margin: 0, lineHeight: 1.5, maxWidth: 480 }}>
+                        {activeEvento.description}
+                      </p>
+                    )}
+                  </div>
+                  <BtnGhost onClick={() => setShowNovaEdicao(true)}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" width="13" height="13">
+                      <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                    </svg>
+                    Nova Edição
+                  </BtnGhost>
+                </div>
 
-                    {/* Links */}
-                    <div className="glass-card" style={{ padding: '1.25rem', marginBottom: '1rem' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap', gap: '.5rem' }}>
-                        <span style={{ fontSize: '.875rem', fontWeight: 600, color: 'var(--nova-text)' }}>Links Centralizados</span>
-                        <button className="btn-ghost" onClick={() => setShowNovoLink(true)} style={{ fontSize: '.75rem', display: 'flex', alignItems: 'center', gap: '.375rem' }}>
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" width="13" height="13">
-                            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-                          </svg>
-                          Adicionar link
-                        </button>
+                {activeEvento.editions.length === 0 ? (
+                  <div className="ev-card" style={{
+                    background: '#0B0D1A', borderRadius: 24, padding: '48px 32px',
+                    border: '1px solid rgba(255,255,255,.05)', textAlign: 'center',
+                    animationDelay: '.1s',
+                  }}>
+                    <div style={{ fontSize: '.875rem', color: 'rgba(238,242,248,.4)', marginBottom: 20 }}>
+                      Nenhuma edição cadastrada ainda.
+                    </div>
+                    <BtnPrimary onClick={() => setShowNovaEdicao(true)}>Criar primeira edição</BtnPrimary>
+                  </div>
+                ) : (
+                  <>
+                    {/* ── Timeline de edições ──────────────────────────── */}
+                    <div className="ev-card" style={{
+                      background: '#0B0D1A', borderRadius: 20, padding: '20px 24px',
+                      border: '1px solid rgba(255,255,255,.05)',
+                      animationDelay: '.1s',
+                    }}>
+                      <div style={{ fontSize: '.6rem', fontWeight: 700, color: 'rgba(238,242,248,.22)', textTransform: 'uppercase', letterSpacing: '.12em', marginBottom: 16 }}>
+                        Edições
                       </div>
-
-                      {activeEdicao.links.length === 0 ? (
-                        <div style={{ textAlign: 'center', padding: '1.5rem', color: 'var(--nova-text-dim)', fontSize: '.8125rem' }}>
-                          Centralize aqui Drive, Figma, fotos e formulários do evento.
-                        </div>
-                      ) : (
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '.75rem' }}>
-                          {activeEdicao.links.map(link => {
-                            const cfg = LINK_CFG[link.type] ?? LINK_CFG.outro;
-                            return (
-                              <div key={link.id} style={{
-                                display: 'flex', alignItems: 'center', gap: '.75rem',
-                                padding: '.75rem 1rem', borderRadius: '.75rem',
-                                background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.06)',
+                      <div style={{ display: 'flex', alignItems: 'center', overflowX: 'auto', paddingBottom: 4, gap: 0 }}>
+                        {[...activeEvento.editions].sort((a, b) => a.year - b.year).map((ed, i, arr) => {
+                          const sel  = activeEdicao?.id === ed.id;
+                          const p    = pct(ed.checklist);
+                          const done = ed.status === 'concluido';
+                          const color = done ? '#4ADE80' : sel ? '#3D7BFF' : 'rgba(238,242,248,.3)';
+                          return (
+                            <div key={ed.id} style={{ display: 'flex', alignItems: 'center' }}>
+                              <button onClick={() => navigate(`/eventos/${activeEvento.id}/${ed.year}`)} style={{
+                                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+                                background: 'none', border: 'none', cursor: 'pointer', padding: '4px 12px',
                               }}>
-                                <div style={{ width: 32, height: 32, borderRadius: '.5rem', flexShrink: 0, background: `${cfg.color}18`, border: `1.5px solid ${cfg.color}35`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '.75rem', fontWeight: 700, color: cfg.color }}>
-                                  {cfg.letter}
+                                <div style={{
+                                  width: 40, height: 40, borderRadius: '50%',
+                                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                  fontWeight: 700, fontSize: '.75rem',
+                                  background: done ? 'rgba(74,222,128,.12)' : sel ? 'rgba(61,123,255,.15)' : 'rgba(255,255,255,.04)',
+                                  border: `2px solid ${color}`,
+                                  color, transition: 'all .15s',
+                                }}>
+                                  {done ? '✓' : String(ed.year).slice(2)}
                                 </div>
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                  <div style={{ fontSize: '.8125rem', fontWeight: 600, color: 'var(--nova-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{link.label}</div>
-                                  <div style={{ fontSize: '.6875rem', color: 'var(--nova-text-dim)' }}>{cfg.label}</div>
-                                </div>
-                                <a href={link.url} target="_blank" rel="noopener noreferrer" style={{ color: '#3D7BFF', display: 'flex', flexShrink: 0 }}>
-                                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" width="14" height="14">
-                                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-                                    <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
-                                  </svg>
-                                </a>
-                                <button onClick={() => removerLink(link.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--nova-text-dim)', display: 'flex', padding: '.1rem', flexShrink: 0 }}>
-                                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" width="13" height="13">
-                                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                                  </svg>
-                                </button>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
+                                <span style={{ fontSize: '.62rem', fontWeight: 600, color, whiteSpace: 'nowrap' }}>{ed.year}</span>
+                                {ed.clickup_list_id
+                                  ? <span style={{ fontSize: '.5rem', color: '#3D7BFF', fontWeight: 700 }}>ClickUp</span>
+                                  : ed.checklist.length > 0 && <span style={{ fontSize: '.55rem', color: 'rgba(238,242,248,.3)' }}>{p}%</span>
+                                }
+                              </button>
+                              {i < arr.length - 1 && (
+                                <div style={{ width: 28, height: 1.5, background: 'rgba(255,255,255,.07)', flexShrink: 0 }} />
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
+
+                    {activeEdicao && (
+                      <>
+                        {/* ── KPI row: 3 cards ─────────────────────────── */}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 14 }}>
+
+                          {/* KPI 1 — Progresso (verde se >50%) */}
+                          <div className="ev-card" style={{
+                            borderRadius: 20, padding: '20px 22px',
+                            background: progresso >= 50
+                              ? 'linear-gradient(145deg, rgba(74,222,128,.09) 0%, rgba(74,222,128,.02) 50%, #0B0D1A 75%)'
+                              : '#0B0D1A',
+                            border: `1px solid ${progresso >= 50 ? 'rgba(74,222,128,.18)' : 'rgba(255,255,255,.05)'}`,
+                            position: 'relative', overflow: 'hidden',
+                            animationDelay: '.15s',
+                          }}>
+                            {progresso >= 50 && (
+                              <div style={{ position: 'absolute', top: -40, left: -40, width: 140, height: 140, borderRadius: '50%', background: 'radial-gradient(circle, rgba(74,222,128,.1) 0%, transparent 70%)', pointerEvents: 'none' }} />
+                            )}
+                            <div style={{ fontSize: '.6rem', fontWeight: 700, color: 'rgba(238,242,248,.22)', textTransform: 'uppercase', letterSpacing: '.12em', marginBottom: 12 }}>
+                              Progresso
+                            </div>
+                            <div style={{ fontSize: '2.5rem', fontWeight: 800, letterSpacing: '-.05em', color: progresso >= 50 ? '#4ADE80' : progresso > 0 ? '#3D7BFF' : 'rgba(238,242,248,.4)', lineHeight: 1 }}>
+                              {progresso}%
+                            </div>
+                            <div style={{ fontSize: '.68rem', color: 'rgba(238,242,248,.3)', marginTop: 6 }}>
+                              {feitos} de {totalItems} itens
+                            </div>
+                          </div>
+
+                          {/* KPI 2 — Pendentes (vermelho se há pendências) */}
+                          <div className="ev-card" style={{
+                            borderRadius: 20, padding: '20px 22px',
+                            background: pendentes > 0
+                              ? 'linear-gradient(145deg, rgba(255,107,107,.09) 0%, rgba(255,107,107,.02) 50%, #0B0D1A 75%)'
+                              : '#0B0D1A',
+                            border: `1px solid ${pendentes > 0 ? 'rgba(255,107,107,.18)' : 'rgba(255,255,255,.05)'}`,
+                            position: 'relative', overflow: 'hidden',
+                            animationDelay: '.2s',
+                          }}>
+                            {pendentes > 0 && (
+                              <div style={{ position: 'absolute', top: -40, right: -40, width: 130, height: 130, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,107,107,.12) 0%, transparent 70%)', pointerEvents: 'none' }} />
+                            )}
+                            <div style={{ fontSize: '.6rem', fontWeight: 700, color: 'rgba(238,242,248,.22)', textTransform: 'uppercase', letterSpacing: '.12em', marginBottom: 12 }}>
+                              Pendentes
+                            </div>
+                            <div style={{ fontSize: '2.5rem', fontWeight: 800, letterSpacing: '-.05em', color: pendentes > 0 ? '#FF6B6B' : '#4ADE80', lineHeight: 1 }}>
+                              {pendentes}
+                            </div>
+                            <div style={{ fontSize: '.68rem', color: 'rgba(238,242,248,.3)', marginTop: 6 }}>
+                              {pendentes === 0 ? 'Tudo concluído 🎉' : `item${pendentes !== 1 ? 's' : ''} em aberto`}
+                            </div>
+                          </div>
+
+                          {/* KPI 3 — Links (neutro) */}
+                          <div className="ev-card" style={{
+                            borderRadius: 20, padding: '20px 22px',
+                            background: '#0B0D1A', border: '1px solid rgba(255,255,255,.05)',
+                            animationDelay: '.25s',
+                          }}>
+                            <div style={{ fontSize: '.6rem', fontWeight: 700, color: 'rgba(238,242,248,.22)', textTransform: 'uppercase', letterSpacing: '.12em', marginBottom: 12 }}>
+                              Links
+                            </div>
+                            <div style={{ fontSize: '2.5rem', fontWeight: 800, letterSpacing: '-.05em', color: '#EEF2F8', lineHeight: 1 }}>
+                              {activeEdicao.links.length}
+                            </div>
+                            <div style={{ fontSize: '.68rem', color: 'rgba(238,242,248,.3)', marginTop: 6 }}>
+                              {activeEdicao.links.length === 0 ? 'Nenhum ainda' : `recurso${activeEdicao.links.length !== 1 ? 's' : ''} centralizado${activeEdicao.links.length !== 1 ? 's' : ''}`}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* ── Barra de progresso + status ──────────────── */}
+                        <div className="ev-card" style={{
+                          background: '#0B0D1A', borderRadius: 20, padding: '20px 24px',
+                          border: '1px solid rgba(255,255,255,.05)',
+                          animationDelay: '.3s',
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                              <span style={{ fontSize: '.875rem', fontWeight: 700, color: '#EEF2F8' }}>
+                                {activeEvento.name} · {activeEdicao.year}
+                              </span>
+                              {sCfg && <Badge color={sCfg.color} bg={sCfg.bg} border={sCfg.border}>{sCfg.label}</Badge>}
+                              {isClickUp && (
+                                <Badge color="#3D7BFF" bg="rgba(61,123,255,.1)" border="rgba(61,123,255,.25)">
+                                  ao vivo · ClickUp
+                                </Badge>
+                              )}
+                            </div>
+                            <span style={{ fontSize: '.7rem', color: 'rgba(238,242,248,.35)', fontWeight: 500 }}>
+                              {feitos} de {totalItems} itens
+                            </span>
+                          </div>
+                          <div style={{ height: 6, borderRadius: 4, background: 'rgba(255,255,255,.05)', overflow: 'hidden' }}>
+                            <div style={{
+                              width: `${progresso}%`, height: '100%',
+                              background: progresso === 100 ? '#4ADE80' : '#3D7BFF',
+                              borderRadius: 4, transition: 'width .5s ease',
+                            }} />
+                          </div>
+                        </div>
+
+                        {/* ── Checklist (azul analítico) ───────────────── */}
+                        <div className="ev-card" style={{
+                          background: 'linear-gradient(180deg, rgba(61,123,255,.06) 0%, rgba(61,123,255,.02) 30%, #0B0D1A 60%)',
+                          borderRadius: 20, padding: '24px 26px',
+                          border: '1px solid rgba(61,123,255,.12)',
+                          position: 'relative', overflow: 'hidden',
+                          animationDelay: '.35s',
+                        }}>
+                          {/* glow topo */}
+                          <div style={{ position: 'absolute', top: -60, left: '20%', width: 260, height: 140, background: 'radial-gradient(ellipse, rgba(61,123,255,.07) 0%, transparent 70%)', pointerEvents: 'none' }} />
+
+                          {/* Header checklist */}
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 8 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                              <span style={{ fontSize: '.875rem', fontWeight: 700, color: '#EEF2F8' }}>Checklist</span>
+                              {isClickUp && <Badge color="#3D7BFF" bg="rgba(61,123,255,.1)" border="rgba(61,123,255,.25)">ClickUp</Badge>}
+                            </div>
+                            {isClickUp ? (
+                              <a href={`https://app.clickup.com/36941541/v/l/${activeEdicao.clickup_list_id}`}
+                                target="_blank" rel="noopener noreferrer"
+                                style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '.72rem', fontWeight: 600, color: '#3D7BFF', textDecoration: 'none', opacity: .8, transition: 'opacity .15s' }}
+                                onMouseEnter={e => (e.currentTarget.style.opacity = '1')}
+                                onMouseLeave={e => (e.currentTarget.style.opacity = '.8')}
+                              >
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" width="12" height="12">
+                                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                                  <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+                                </svg>
+                                Gerenciar no ClickUp
+                              </a>
+                            ) : (
+                              activeEdicao.checklist.length === 0 && activeEvento.editions.length > 1 && (
+                                <BtnGhost onClick={copiarChecklist}>
+                                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" width="12" height="12">
+                                    <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                                  </svg>
+                                  Copiar do ano anterior
+                                </BtnGhost>
+                              )
+                            )}
+                          </div>
+
+                          {/* Itens ClickUp */}
+                          {isClickUp ? (
+                            cuLoading ? (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                {[1,2,3,4,5].map(i => <Skel key={i} w="100%" h={44} r={12} />)}
+                              </div>
+                            ) : cuTasks.length === 0 ? (
+                              <div style={{ textAlign: 'center', padding: '2rem', color: 'rgba(238,242,248,.28)', fontSize: '.78rem' }}>
+                                Nenhuma tarefa encontrada nessa lista do ClickUp.
+                              </div>
+                            ) : (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                {cuTasks.map(task => {
+                                  const done = task.status.type === 'closed';
+                                  const st   = getStatusStyle(task);
+                                  return (
+                                    <div key={task.id} className="ev-check-row" style={{
+                                      display: 'flex', alignItems: 'center', gap: 10,
+                                      padding: '10px 14px', borderRadius: 12,
+                                      background: done ? 'rgba(74,222,128,.04)' : 'rgba(255,255,255,.03)',
+                                      border: `1px solid ${done ? 'rgba(74,222,128,.12)' : 'rgba(255,255,255,.05)'}`,
+                                      transition: 'background .15s',
+                                    }}>
+                                      <div style={{
+                                        width: 18, height: 18, borderRadius: 5, flexShrink: 0,
+                                        background: done ? '#4ADE80' : 'transparent',
+                                        border: `2px solid ${done ? '#4ADE80' : 'rgba(255,255,255,.14)'}`,
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                      }}>
+                                        {done && <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" width="10" height="10"><polyline points="20 6 9 17 4 12"/></svg>}
+                                      </div>
+                                      <span style={{ flex: 1, fontSize: '.78rem', fontWeight: 500, color: done ? 'rgba(238,242,248,.3)' : '#EEF2F8', textDecoration: done ? 'line-through' : 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                        {task.name}
+                                      </span>
+                                      <Badge color={st.color} bg={st.bg} border={`${st.color}30`}>{st.label}</Badge>
+                                      <a href={task.url} target="_blank" rel="noopener noreferrer"
+                                        style={{ color: 'rgba(61,123,255,.6)', display: 'flex', flexShrink: 0, transition: 'color .15s' }}
+                                        onMouseEnter={e => (e.currentTarget.style.color = '#3D7BFF')}
+                                        onMouseLeave={e => (e.currentTarget.style.color = 'rgba(61,123,255,.6)')}
+                                        title="Abrir no ClickUp">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" width="13" height="13">
+                                          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                                          <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+                                        </svg>
+                                      </a>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )
+                          ) : (
+                            /* Modo manual */
+                            <>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
+                                {activeEdicao.checklist.length === 0 && (
+                                  <div style={{ textAlign: 'center', padding: '2rem', color: 'rgba(238,242,248,.28)', fontSize: '.78rem' }}>
+                                    Nenhum item ainda. Adicione abaixo ou copie do ano anterior.
+                                  </div>
+                                )}
+                                {activeEdicao.checklist.map(item => {
+                                  const cat = CAT_CFG[item.category] ?? CAT_CFG.outro;
+                                  return (
+                                    <div key={item.id} className="ev-check-row" style={{
+                                      display: 'flex', alignItems: 'center', gap: 10,
+                                      padding: '10px 14px', borderRadius: 12,
+                                      background: item.done ? 'rgba(74,222,128,.04)' : 'rgba(255,255,255,.03)',
+                                      border: `1px solid ${item.done ? 'rgba(74,222,128,.12)' : 'rgba(255,255,255,.05)'}`,
+                                      transition: 'background .15s',
+                                    }}>
+                                      <button onClick={() => toggleItem(item)} style={{
+                                        width: 18, height: 18, borderRadius: 5, flexShrink: 0, cursor: 'pointer',
+                                        background: item.done ? '#4ADE80' : 'transparent',
+                                        border: `2px solid ${item.done ? '#4ADE80' : 'rgba(255,255,255,.14)'}`,
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all .15s',
+                                      }}>
+                                        {item.done && <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" width="10" height="10"><polyline points="20 6 9 17 4 12"/></svg>}
+                                      </button>
+                                      <span style={{ flex: 1, fontSize: '.78rem', fontWeight: 500, color: item.done ? 'rgba(238,242,248,.3)' : '#EEF2F8', textDecoration: item.done ? 'line-through' : 'none' }}>
+                                        {item.name}
+                                      </span>
+                                      <Badge color={cat.color} bg={`${cat.color}18`} border={`${cat.color}30`}>{cat.label}</Badge>
+                                      <button onClick={() => removerItem(item.id)} style={{
+                                        background: 'none', border: 'none', cursor: 'pointer',
+                                        color: 'rgba(238,242,248,.2)', display: 'flex', padding: 2, flexShrink: 0,
+                                        transition: 'color .15s',
+                                      }}
+                                        onMouseEnter={e => (e.currentTarget.style.color = '#FF6B6B')}
+                                        onMouseLeave={e => (e.currentTarget.style.color = 'rgba(238,242,248,.2)')}
+                                      >
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" width="13" height="13">
+                                          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                                        </svg>
+                                      </button>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+
+                              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                                <input
+                                  className="ev-input"
+                                  placeholder="Novo item..."
+                                  value={novoItem}
+                                  onChange={e => setNovoItem(e.target.value)}
+                                  onKeyDown={e => e.key === 'Enter' && adicionarItem()}
+                                  style={{ ...inputStyle, flex: 1, minWidth: 140 }}
+                                />
+                                <select
+                                  className="ev-input"
+                                  value={novoItemCat}
+                                  onChange={e => setNovoItemCat(e.target.value)}
+                                  style={{ ...inputStyle, width: 'auto' }}
+                                >
+                                  {CATEGORIES.map(c => <option key={c} value={c}>{CAT_CFG[c]?.label ?? c}</option>)}
+                                </select>
+                                <BtnPrimary onClick={adicionarItem} disabled={!novoItem.trim()}>Adicionar</BtnPrimary>
+                              </div>
+                            </>
+                          )}
+                        </div>
+
+                        {/* ── Links centralizados ──────────────────────── */}
+                        <div className="ev-card" style={{
+                          background: '#0B0D1A', borderRadius: 20, padding: '24px 26px',
+                          border: '1px solid rgba(255,255,255,.05)',
+                          marginBottom: 8,
+                          animationDelay: '.4s',
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 8 }}>
+                            <span style={{ fontSize: '.875rem', fontWeight: 700, color: '#EEF2F8' }}>Links Centralizados</span>
+                            <BtnGhost onClick={() => setShowNovoLink(true)}>
+                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" width="12" height="12">
+                                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                              </svg>
+                              Adicionar link
+                            </BtnGhost>
+                          </div>
+
+                          {activeEdicao.links.length === 0 ? (
+                            <div style={{ textAlign: 'center', padding: '2rem', color: 'rgba(238,242,248,.25)', fontSize: '.78rem' }}>
+                              Centralize aqui Drive, Figma, fotos e formulários do evento.
+                            </div>
+                          ) : (
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 10 }}>
+                              {activeEdicao.links.map(link => {
+                                const cfg = LINK_CFG[link.type] ?? LINK_CFG.outro;
+                                return (
+                                  <div key={link.id} style={{
+                                    display: 'flex', alignItems: 'center', gap: 12,
+                                    padding: '12px 14px', borderRadius: 14,
+                                    background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.06)',
+                                    transition: 'border-color .15s',
+                                  }}
+                                    onMouseEnter={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,.12)')}
+                                    onMouseLeave={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,.06)')}
+                                  >
+                                    <div style={{
+                                      width: 34, height: 34, borderRadius: 10, flexShrink: 0,
+                                      background: `${cfg.color}14`, border: `1.5px solid ${cfg.color}30`,
+                                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                      fontSize: '.72rem', fontWeight: 800, color: cfg.color,
+                                    }}>
+                                      {cfg.letter}
+                                    </div>
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                      <div style={{ fontSize: '.78rem', fontWeight: 600, color: '#EEF2F8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{link.label}</div>
+                                      <div style={{ fontSize: '.65rem', color: 'rgba(238,242,248,.3)', marginTop: 1 }}>{cfg.label}</div>
+                                    </div>
+                                    <a href={link.url} target="_blank" rel="noopener noreferrer"
+                                      style={{ color: 'rgba(61,123,255,.55)', display: 'flex', flexShrink: 0, transition: 'color .15s' }}
+                                      onMouseEnter={e => (e.currentTarget.style.color = '#3D7BFF')}
+                                      onMouseLeave={e => (e.currentTarget.style.color = 'rgba(61,123,255,.55)')}
+                                    >
+                                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" width="14" height="14">
+                                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                                        <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+                                      </svg>
+                                    </a>
+                                    <button onClick={() => removerLink(link.id)} style={{
+                                      background: 'none', border: 'none', cursor: 'pointer',
+                                      color: 'rgba(238,242,248,.18)', display: 'flex', padding: 2, flexShrink: 0,
+                                      transition: 'color .15s',
+                                    }}
+                                      onMouseEnter={e => (e.currentTarget.style.color = '#FF6B6B')}
+                                      onMouseLeave={e => (e.currentTarget.style.color = 'rgba(238,242,248,.18)')}
+                                    >
+                                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" width="13" height="13">
+                                        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                                      </svg>
+                                    </button>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      </>
+                    )}
                   </>
                 )}
               </>
-            )}
-          </>
-        ) : null}
+            ) : null}
+          </div>
+        </div>
       </div>
 
-      {/* Modal: Novo Evento */}
+      {/* ── Modais ──────────────────────────────────────────────────────── */}
       {showNovoEvento && (
-        <Overlay onClose={() => setShowNovoEvento(false)}>
-          <ModalBox title="Novo Evento">
-            <LabelField label="Nome *">
-              <input className="nova-input" value={novoNome} onChange={e => setNovoNome(e.target.value)}
-                placeholder="Ex: Missão Coordenação" autoFocus onKeyDown={e => e.key === 'Enter' && criarEvento()} />
-            </LabelField>
-            <LabelField label="Descrição">
-              <textarea className="nova-textarea" value={novoDesc} onChange={e => setNovoDesc(e.target.value)} rows={3} placeholder="Opcional..." />
-            </LabelField>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '.625rem' }}>
-              <button className="btn-ghost" onClick={() => setShowNovoEvento(false)}>Cancelar</button>
-              <button className="btn-blue" onClick={criarEvento} disabled={saving || !novoNome.trim()}>
-                {saving ? 'Criando...' : 'Criar evento'}
-              </button>
-            </div>
-          </ModalBox>
-        </Overlay>
+        <Modal onClose={() => setShowNovoEvento(false)} title="Novo Evento">
+          <ModalField label="Nome *">
+            <input className="ev-input" style={inputStyle} value={novoNome}
+              onChange={e => setNovoNome(e.target.value)} placeholder="Ex: Missão Coordenação"
+              autoFocus onKeyDown={e => e.key === 'Enter' && criarEvento()} />
+          </ModalField>
+          <ModalField label="Descrição">
+            <textarea style={{ ...inputStyle, resize: 'vertical', minHeight: 72 }}
+              value={novoDesc} onChange={e => setNovoDesc(e.target.value)} rows={3} placeholder="Opcional..." />
+          </ModalField>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+            <BtnGhost onClick={() => setShowNovoEvento(false)}>Cancelar</BtnGhost>
+            <BtnPrimary onClick={criarEvento} disabled={saving || !novoNome.trim()}>
+              {saving ? 'Criando...' : 'Criar evento'}
+            </BtnPrimary>
+          </div>
+        </Modal>
       )}
 
-      {/* Modal: Nova Edição */}
       {showNovaEdicao && (
-        <Overlay onClose={() => setShowNovaEdicao(false)}>
-          <ModalBox title="Nova Edição">
-            <LabelField label="Ano *">
-              <input className="nova-input" type="number" value={novoAno}
-                onChange={e => setNovoAno(parseInt(e.target.value))} min={2020} max={2040} autoFocus />
-            </LabelField>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '.625rem' }}>
-              <button className="btn-ghost" onClick={() => setShowNovaEdicao(false)}>Cancelar</button>
-              <button className="btn-blue" onClick={criarEdicao} disabled={saving}>
-                {saving ? 'Criando...' : 'Criar edição'}
-              </button>
-            </div>
-          </ModalBox>
-        </Overlay>
+        <Modal onClose={() => setShowNovaEdicao(false)} title="Nova Edição">
+          <ModalField label="Ano *">
+            <input className="ev-input" style={inputStyle} type="number" value={novoAno}
+              onChange={e => setNovoAno(parseInt(e.target.value))} min={2020} max={2040} autoFocus />
+          </ModalField>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+            <BtnGhost onClick={() => setShowNovaEdicao(false)}>Cancelar</BtnGhost>
+            <BtnPrimary onClick={criarEdicao} disabled={saving}>
+              {saving ? 'Criando...' : 'Criar edição'}
+            </BtnPrimary>
+          </div>
+        </Modal>
       )}
 
-      {/* Modal: Novo Link */}
       {showNovoLink && (
-        <Overlay onClose={() => setShowNovoLink(false)}>
-          <ModalBox title="Adicionar Link">
-            <LabelField label="Tipo">
-              <select className="nova-input" value={novoLinkType} onChange={e => setNovoLinkType(e.target.value)}>
-                {LINK_TYPES.map(t => <option key={t} value={t}>{LINK_CFG[t]?.label ?? t}</option>)}
-              </select>
-            </LabelField>
-            <LabelField label="Label *">
-              <input className="nova-input" value={novoLinkLabel} onChange={e => setNovoLinkLabel(e.target.value)} placeholder="Ex: Fotos do evento" autoFocus />
-            </LabelField>
-            <LabelField label="URL *">
-              <input className="nova-input" type="url" value={novoLinkUrl} onChange={e => setNovoLinkUrl(e.target.value)}
-                placeholder="https://..." onKeyDown={e => e.key === 'Enter' && adicionarLink()} />
-            </LabelField>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '.625rem' }}>
-              <button className="btn-ghost" onClick={() => setShowNovoLink(false)}>Cancelar</button>
-              <button className="btn-blue" onClick={adicionarLink} disabled={saving || !novoLinkLabel.trim() || !novoLinkUrl.trim()}>
-                {saving ? 'Salvando...' : 'Salvar link'}
-              </button>
-            </div>
-          </ModalBox>
-        </Overlay>
+        <Modal onClose={() => setShowNovoLink(false)} title="Adicionar Link">
+          <ModalField label="Tipo">
+            <select style={inputStyle} value={novoLinkType} onChange={e => setNovoLinkType(e.target.value)}>
+              {LINK_TYPES.map(t => <option key={t} value={t}>{LINK_CFG[t]?.label ?? t}</option>)}
+            </select>
+          </ModalField>
+          <ModalField label="Label *">
+            <input className="ev-input" style={inputStyle} value={novoLinkLabel}
+              onChange={e => setNovoLinkLabel(e.target.value)} placeholder="Ex: Fotos do evento" autoFocus />
+          </ModalField>
+          <ModalField label="URL *">
+            <input className="ev-input" style={inputStyle} type="url" value={novoLinkUrl}
+              onChange={e => setNovoLinkUrl(e.target.value)} placeholder="https://..."
+              onKeyDown={e => e.key === 'Enter' && adicionarLink()} />
+          </ModalField>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+            <BtnGhost onClick={() => setShowNovoLink(false)}>Cancelar</BtnGhost>
+            <BtnPrimary onClick={adicionarLink} disabled={saving || !novoLinkLabel.trim() || !novoLinkUrl.trim()}>
+              {saving ? 'Salvando...' : 'Salvar link'}
+            </BtnPrimary>
+          </div>
+        </Modal>
       )}
+    </>
+  );
+}
+
+// ── Modal components ──────────────────────────────────────────────────
+function Modal({ children, onClose, title }: { children: React.ReactNode; onClose: () => void; title: string }) {
+  return (
+    <div
+      style={{ position: 'fixed', inset: 0, background: 'rgba(5,7,14,.82)', zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', backdropFilter: 'blur(4px)' }}
+      onClick={e => e.target === e.currentTarget && onClose()}
+    >
+      <div style={{
+        background: '#0E1120', border: '1px solid rgba(255,255,255,.08)', borderRadius: 22,
+        padding: '28px 28px', width: '100%', maxWidth: 440,
+        display: 'flex', flexDirection: 'column', gap: 18,
+        boxShadow: '0 32px 80px rgba(0,0,0,.6)',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <h2 style={{ fontSize: '1.0625rem', fontWeight: 800, color: '#EEF2F8', margin: 0, letterSpacing: '-.02em' }}>{title}</h2>
+          <button onClick={onClose} style={{
+            background: 'none', border: '1px solid rgba(255,255,255,.08)', borderRadius: 8,
+            width: 28, height: 28, cursor: 'pointer', color: 'rgba(238,242,248,.4)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all .15s',
+          }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = '#EEF2F8'; (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,.18)'; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = 'rgba(238,242,248,.4)'; (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,.08)'; }}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" width="14" height="14">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+        {children}
+      </div>
     </div>
   );
 }
 
-// ── Helpers de modal ──────────────────────────────────────────────────
-function Overlay({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
+function ModalField({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(8,11,18,.78)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}
-      onClick={e => e.target === e.currentTarget && onClose()}>
-      {children}
-    </div>
-  );
-}
-
-function ModalBox({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div style={{ background: 'var(--nova-bg-elev)', border: '1px solid var(--nova-border)', borderRadius: '1.125rem', padding: '1.5rem', width: '100%', maxWidth: 440, display: 'flex', flexDirection: 'column', gap: '.875rem' }}>
-      <h2 style={{ fontSize: '1.0625rem', fontWeight: 700, color: 'var(--nova-text)', margin: 0 }}>{title}</h2>
-      {children}
-    </div>
-  );
-}
-
-function LabelField({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '.375rem' }}>
-      <label style={{ fontSize: '.6875rem', fontWeight: 700, color: 'var(--nova-text-dim)', textTransform: 'uppercase', letterSpacing: '.06em' }}>{label}</label>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <label style={{ fontSize: '.6rem', fontWeight: 700, color: 'rgba(238,242,248,.3)', textTransform: 'uppercase', letterSpacing: '.1em' }}>{label}</label>
       {children}
     </div>
   );
