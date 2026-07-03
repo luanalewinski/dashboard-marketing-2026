@@ -431,16 +431,19 @@ export default function Dashboard() {
           <div className="bento-card" style={{
             gridColumn: '9 / 13', gridRow: '3',
             background: urgentTasks.length > 0
-              ? 'linear-gradient(145deg, rgba(255,107,107,.1) 0%, rgba(255,107,107,.03) 45%, #0B0D1A 70%)'
+              ? 'linear-gradient(145deg, rgba(255,107,107,.22) 0%, rgba(255,107,107,.08) 45%, #0B0D1A 72%)'
               : '#0B0D1A',
             borderRadius: 24, padding: '26px 28px',
-            border: `1px solid ${urgentTasks.length > 0 ? 'rgba(255,107,107,.2)' : 'rgba(255,255,255,.05)'}`,
+            border: `1px solid ${urgentTasks.length > 0 ? 'rgba(255,107,107,.38)' : 'rgba(255,255,255,.05)'}`,
             position: 'relative', overflow: 'hidden',
             display: 'flex', flexDirection: 'column', gap: 14,
             animationDelay: '.4s',
           }}>
             {urgentTasks.length > 0 && (
-              <div style={{ position: 'absolute', top: -50, right: -50, width: 180, height: 180, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,107,107,.1) 0%, transparent 70%)', pointerEvents: 'none' }} />
+              <>
+                <div style={{ position: 'absolute', top: -60, right: -60, width: 220, height: 220, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,107,107,.22) 0%, transparent 70%)', pointerEvents: 'none' }} />
+                <div style={{ position: 'absolute', top: 0, left: 28, right: 28, height: 1, background: 'linear-gradient(90deg, transparent, rgba(255,107,107,.5), transparent)' }} />
+              </>
             )}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ fontSize: '.6rem', fontWeight: 700, color: 'rgba(238,242,248,.22)', textTransform: 'uppercase', letterSpacing: '.12em' }}>
