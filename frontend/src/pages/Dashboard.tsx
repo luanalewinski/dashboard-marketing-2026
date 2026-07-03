@@ -391,7 +391,7 @@ export default function Dashboard() {
                 </div>
               </div>
               <a
-                href={`https://app.clickup.com/${CU.WORKSPACE_ID}`}
+                href={`https://app.clickup.com/${CU.SPACE_ID}`}
                 target="_blank" rel="noopener noreferrer"
                 style={{ fontSize: '.68rem', fontWeight: 600, color: '#3D7BFF', textDecoration: 'none', opacity: .7 }}
                 onMouseEnter={e => (e.currentTarget.style.opacity = '1')}

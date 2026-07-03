@@ -89,7 +89,7 @@ const DADOS = {
       { dia: '30/06', valor: 600 },  { dia: '01/07', valor: 180 },
     ],
   },
-} as const;
+};
 
 type Periodo = '7' | '14' | '30';
 
