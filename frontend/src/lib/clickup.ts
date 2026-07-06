@@ -113,6 +113,25 @@ export async function updateTaskStatus(taskId: string, status: string) {
   return cuFetch(`/task/${taskId}`, 'PUT', { status });
 }
 
+// ── Membros do Space ─────────────────────────────────────────────────
+export interface CUMember {
+  id: number;
+  username: string;
+  initials: string;
+  color: string;
+  profilePicture: string | null;
+}
+
+export async function getSpaceMembers(spaceId: string): Promise<CUMember[]> {
+  try {
+    const data = await cuFetch(`/space/${spaceId}/member`);
+    return ((data.members ?? []) as { user: CUMember }[]).map(m => m.user);
+  } catch (err) {
+    console.error('[clickup] getSpaceMembers failed:', err);
+    return [];
+  }
+}
+
 // IDs fixos do workspace MKT NOVA
 export const CU = {
   SPACE_ID:       '60965611',
