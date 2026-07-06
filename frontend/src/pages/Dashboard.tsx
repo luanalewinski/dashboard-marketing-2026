@@ -4,6 +4,7 @@ import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from 'recharts';
 import { getListTasks, CU, CUTask } from '../lib/clickup';
+import GridLayout, { CardConfig } from '../components/layout/GridLayout';
 
 // ── Types ──────────────────────────────────────────────────────────────
 interface TeamData {
@@ -36,6 +37,15 @@ const STATUS_COLOR: Record<string, string> = {
   'concluído':    '#4ADE80',
 };
 
+const DASHBOARD_CARDS: CardConfig[] = [
+  { id: 'dash-tasks-done',   label: 'Tarefas Concluídas',   defaultColSpan: 5 },
+  { id: 'dash-in-progress',  label: 'Em Andamento',          defaultColSpan: 3 },
+  { id: 'dash-status-geral', label: 'Status Geral',          defaultColSpan: 4 },
+  { id: 'dash-teams',        label: 'Times',                  defaultColSpan: 12 },
+  { id: 'dash-tendencia',    label: 'Tendência de Entrega',  defaultColSpan: 8 },
+  { id: 'dash-alta-prio',    label: 'Alta Prioridade',        defaultColSpan: 4 },
+];
+
 // ── Helpers ────────────────────────────────────────────────────────────
 function pct(done: number, total: number) {
   return total ? Math.round((done / total) * 100) : 0;
@@ -52,7 +62,6 @@ function Skel({ w, h, r = 8 }: { w: number | string; h: number; r?: number }) {
   );
 }
 
-// Sparkline derived from task count
 function Spark({ total, color = '#3D7BFF' }: { total: number; color?: string }) {
   const seed = Math.max(total, 10);
   const pts = [.08,.12,.09,.18,.22,.28,.35,.42,.38,.50,.58,.65,.60,.74,.80,.88,.92,1].map((f, i) => ({
@@ -74,7 +83,6 @@ function Spark({ total, color = '#3D7BFF' }: { total: number; color?: string }) 
   );
 }
 
-// Custom tooltip
 function ChartTip({ active, payload }: any) {
   if (!active || !payload?.length) return null;
   return (
@@ -86,9 +94,9 @@ function ChartTip({ active, payload }: any) {
 
 // ── Componente principal ───────────────────────────────────────────────
 export default function Dashboard() {
-  const [teams, setTeams]       = useState<TeamData[]>([]);
-  const [loading, setLoading]   = useState(true);
-  const [error, setError]       = useState<string | null>(null);
+  const [teams, setTeams]     = useState<TeamData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError]     = useState<string | null>(null);
 
   useEffect(() => {
     const keys = TEAMS.map(t => t.key);
@@ -98,15 +106,14 @@ export default function Dashboard() {
       .finally(() => setLoading(false));
   }, []);
 
-  // ── Aggregates ─────────────────────────────────────────────────────
-  const allTasks = teams.flatMap(t => t.tasks);
-  const total    = allTasks.length;
-  const done     = allTasks.filter(t => t.status.type === 'closed').length;
-  const inProg   = allTasks.filter(t => t.status.status === 'em andamento').length;
-  const inReview = allTasks.filter(t => t.status.status === 'em aprovação').length;
-  const inAdj    = allTasks.filter(t => t.status.status === 'em ajustes').length;
-  const pctDone  = pct(done, total);
-  const circ     = 2 * Math.PI * 28;
+  const allTasks    = teams.flatMap(t => t.tasks);
+  const total       = allTasks.length;
+  const done        = allTasks.filter(t => t.status.type === 'closed').length;
+  const inProg      = allTasks.filter(t => t.status.status === 'em andamento').length;
+  const inReview    = allTasks.filter(t => t.status.status === 'em aprovação').length;
+  const inAdj       = allTasks.filter(t => t.status.status === 'em ajustes').length;
+  const pctDone     = pct(done, total);
+  const circ        = 2 * Math.PI * 28;
 
   const statusCounts: Record<string, number> = {};
   allTasks.forEach(t => { const s = t.status.status; statusCounts[s] = (statusCounts[s] ?? 0) + 1; });
@@ -118,7 +125,6 @@ export default function Dashboard() {
     .filter(t => (t.priority?.priority === 'urgent' || t.priority?.priority === 'high') && t.status.type !== 'closed')
     .slice(0, 6);
 
-  // Spark data for the trend card
   const sparkSeed = Math.max(total, 10);
   const sparkData = [.08,.14,.10,.22,.30,.36,.42,.50,.46,.58,.64,.72,.68,.80,.86,.94,1].map((f, i) => ({
     s: i + 1, v: Math.round(f * sparkSeed),
@@ -131,6 +137,268 @@ export default function Dashboard() {
       </div>
     </div>
   );
+
+  // ── Card render map ─────────────────────────────────────────────────
+  function renderCard(id: string) {
+    switch (id) {
+
+      case 'dash-tasks-done':
+        return (
+          <div className="bento-card" style={{
+            background: 'linear-gradient(145deg, rgba(74,222,128,.07) 0%, rgba(74,222,128,.02) 40%, #0B0D1A 70%)',
+            borderRadius: 24, padding: '28px 30px',
+            border: '1px solid rgba(74,222,128,.14)',
+            position: 'relative', overflow: 'hidden',
+            display: 'flex', flexDirection: 'column', gap: 14,
+            minHeight: 160,
+          }}>
+            <div style={{ position: 'absolute', top: -60, left: -60, width: 240, height: 240, borderRadius: '50%', background: 'radial-gradient(circle, rgba(74,222,128,.09) 0%, transparent 70%)', pointerEvents: 'none' }} />
+            <div style={{ position: 'absolute', top: 0, left: 28, right: 28, height: 1, background: 'linear-gradient(90deg, transparent, rgba(74,222,128,.45), transparent)' }} />
+            <div style={{ fontSize: '.6rem', fontWeight: 700, color: 'rgba(238,242,248,.22)', textTransform: 'uppercase', letterSpacing: '.12em' }}>
+              Tarefas concluídas
+            </div>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+              {loading ? <Skel w={110} h={52} r={10} /> : (
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
+                  <span style={{ fontSize: '3.5rem', fontWeight: 800, color: '#EEF2F8', lineHeight: 1, letterSpacing: '-.05em' }}>{done}</span>
+                  <span style={{ fontSize: '1.125rem', fontWeight: 500, color: 'rgba(238,242,248,.3)', letterSpacing: '-.01em' }}>/{total}</span>
+                </div>
+              )}
+              {!loading && (
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'rgba(74,222,128,.08)', border: '1px solid rgba(74,222,128,.18)', borderRadius: 20, padding: '5px 12px', fontSize: '.7rem', fontWeight: 700, color: '#4ADE80' }}>
+                  ↑ {pctDone}% concluído
+                </div>
+              )}
+            </div>
+            <div style={{ flex: 1, minHeight: 48 }}>
+              <Spark total={total} />
+            </div>
+          </div>
+        );
+
+      case 'dash-in-progress':
+        return (
+          <div className="bento-card" style={{
+            background: '#0B0D1A', borderRadius: 24, padding: '24px 26px',
+            border: '1px solid rgba(255,255,255,.05)',
+            display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+            minHeight: 160,
+          }}>
+            <div style={{ fontSize: '.6rem', fontWeight: 700, color: 'rgba(238,242,248,.22)', textTransform: 'uppercase', letterSpacing: '.12em' }}>Em andamento</div>
+            {loading ? <Skel w={80} h={48} r={8} /> : (
+              <div>
+                <div style={{ fontSize: '2.75rem', fontWeight: 800, color: '#3D7BFF', lineHeight: 1, letterSpacing: '-.05em' }}>{inProg}</div>
+                <div style={{ fontSize: '.7rem', color: 'rgba(238,242,248,.3)', marginTop: 6 }}>tarefas ativas agora</div>
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              <div style={{ fontSize: '.62rem', fontWeight: 700, color: '#FBBF24', background: 'rgba(251,191,36,.08)', border: '1px solid rgba(251,191,36,.18)', borderRadius: 20, padding: '3px 9px' }}>
+                {loading ? '–' : inReview} em aprovação
+              </div>
+              <div style={{ fontSize: '.62rem', fontWeight: 700, color: '#FF6B6B', background: 'rgba(255,107,107,.08)', border: '1px solid rgba(255,107,107,.18)', borderRadius: 20, padding: '3px 9px' }}>
+                {loading ? '–' : inAdj} em ajustes
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'dash-status-geral':
+        return (
+          <div className="bento-card" style={{
+            background: '#0B0D1A', borderRadius: 24, padding: '24px 26px',
+            border: '1px solid rgba(255,255,255,.05)',
+            display: 'flex', flexDirection: 'column', gap: 18,
+            minHeight: 160,
+          }}>
+            <div style={{ fontSize: '.6rem', fontWeight: 700, color: 'rgba(238,242,248,.22)', textTransform: 'uppercase', letterSpacing: '.12em' }}>Status geral</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+              {loading ? <Skel w={72} h={72} r={36} /> : (
+                <div style={{ position: 'relative', flexShrink: 0 }}>
+                  <svg width="72" height="72" viewBox="0 0 72 72">
+                    <circle cx="36" cy="36" r="28" fill="none" stroke="rgba(255,255,255,.05)" strokeWidth="5" />
+                    <circle cx="36" cy="36" r="28" fill="none" stroke="#4ADE80" strokeWidth="5"
+                      strokeDasharray={`${(pctDone / 100) * circ} ${circ}`}
+                      transform="rotate(-90 36 36)" strokeLinecap="round" />
+                  </svg>
+                  <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
+                    <span style={{ fontSize: '1rem', fontWeight: 800, color: '#EEF2F8', lineHeight: 1, letterSpacing: '-.03em' }}>{pctDone}%</span>
+                    <span style={{ fontSize: '.42rem', color: 'rgba(238,242,248,.25)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.06em' }}>done</span>
+                  </div>
+                </div>
+              )}
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {loading ? [1,2,3].map(i => <Skel key={i} w="100%" h={12} r={4} />) :
+                  donutData.slice(0, 3).map(d => (
+                    <div key={d.name} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ width: 5, height: 5, borderRadius: '50%', background: d.color, flexShrink: 0 }} />
+                      <span style={{ fontSize: '.68rem', color: 'rgba(238,242,248,.4)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.name}</span>
+                      <span style={{ fontSize: '.68rem', fontWeight: 700, color: 'rgba(238,242,248,.7)' }}>{d.value}</span>
+                    </div>
+                  ))
+                }
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'dash-teams':
+        return (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
+            {loading
+              ? [0,1,2,3].map(i => (
+                <div key={i} className="bento-card" style={{
+                  background: '#0B0D1A', borderRadius: 20, padding: '22px 24px',
+                  border: '1px solid rgba(255,255,255,.05)',
+                  display: 'flex', flexDirection: 'column', gap: 14,
+                  animationDelay: `${.15 + i * .05}s`,
+                }}>
+                  <Skel w={80} h={10} />
+                  <Skel w={50} h={34} />
+                  <Skel w="100%" h={4} r={4} />
+                </div>
+              ))
+              : teams.map((t, i) => {
+                const tDone = t.tasks.filter(tk => tk.status.type === 'closed').length;
+                const tProg = pct(tDone, t.tasks.length);
+                const tInP  = t.tasks.filter(tk => tk.status.status === 'em andamento').length;
+                return (
+                  <Link key={t.key} to={t.path} className="bento-card" style={{
+                    background: '#0B0D1A', borderRadius: 20, padding: '22px 24px',
+                    border: '1px solid rgba(255,255,255,.05)',
+                    display: 'flex', flexDirection: 'column', gap: 12,
+                    textDecoration: 'none', transition: 'border-color .2s, transform .2s',
+                    animationDelay: `${.15 + i * .05}s`,
+                  }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = `${t.color}30`; (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)'; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,.05)'; (e.currentTarget as HTMLElement).style.transform = 'translateY(0)'; }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ width: 6, height: 6, borderRadius: '50%', background: t.color, flexShrink: 0 }} />
+                        <span style={{ fontSize: '.68rem', fontWeight: 700, color: 'rgba(238,242,248,.4)', textTransform: 'uppercase', letterSpacing: '.08em' }}>{t.label}</span>
+                      </div>
+                      <span style={{ fontSize: '.58rem', fontWeight: 700, background: `${t.color}14`, color: t.color, border: `1px solid ${t.color}28`, borderRadius: 20, padding: '2px 8px' }}>
+                        {tDone}/{t.tasks.length}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+                      <span style={{ fontSize: '2.25rem', fontWeight: 800, color: '#EEF2F8', lineHeight: 1, letterSpacing: '-.04em' }}>{tProg}%</span>
+                      <span style={{ fontSize: '.7rem', color: 'rgba(238,242,248,.3)' }}>concluído</span>
+                    </div>
+                    <div>
+                      <div style={{ height: 4, background: 'rgba(255,255,255,.06)', borderRadius: 4, overflow: 'hidden' }}>
+                        <div style={{ width: `${tProg}%`, height: '100%', background: t.color, borderRadius: 4, transition: 'width .6s ease' }} />
+                      </div>
+                      {tInP > 0 && <div style={{ fontSize: '.6rem', color: 'rgba(238,242,248,.28)', marginTop: 6 }}>{tInP} em andamento</div>}
+                    </div>
+                  </Link>
+                );
+              })
+            }
+          </div>
+        );
+
+      case 'dash-tendencia':
+        return (
+          <div className="bento-card" style={{
+            background: 'linear-gradient(180deg, rgba(61,123,255,.07) 0%, rgba(61,123,255,.02) 35%, #0B0D1A 65%)',
+            borderRadius: 24, padding: '26px 28px',
+            border: '1px solid rgba(61,123,255,.12)',
+            position: 'relative', overflow: 'hidden',
+            display: 'flex', flexDirection: 'column', gap: 18,
+          }}>
+            <div style={{ position: 'absolute', top: -80, left: '30%', width: 300, height: 200, background: 'radial-gradient(ellipse, rgba(61,123,255,.07) 0%, transparent 70%)', pointerEvents: 'none' }} />
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+              <div>
+                <div style={{ fontSize: '.6rem', fontWeight: 700, color: 'rgba(238,242,248,.22)', textTransform: 'uppercase', letterSpacing: '.12em', marginBottom: 6 }}>Tendência de entrega</div>
+                <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#EEF2F8', letterSpacing: '-.03em' }}>
+                  {loading ? '–' : total}
+                  <span style={{ fontSize: '.875rem', fontWeight: 500, color: 'rgba(238,242,248,.3)', marginLeft: 6 }}>tasks totais</span>
+                </div>
+              </div>
+              <a href={`https://app.clickup.com/${CU.SPACE_ID}`} target="_blank" rel="noopener noreferrer"
+                style={{ fontSize: '.68rem', fontWeight: 600, color: '#3D7BFF', textDecoration: 'none', opacity: .7 }}
+                onMouseEnter={e => (e.currentTarget.style.opacity = '1')}
+                onMouseLeave={e => (e.currentTarget.style.opacity = '.7')}
+              >Ver no ClickUp →</a>
+            </div>
+            <ResponsiveContainer width="100%" height={140}>
+              <AreaChart data={sparkData} margin={{ top: 4, right: 4, left: -24, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="dashGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#3D7BFF" stopOpacity={0.2} />
+                    <stop offset="100%" stopColor="#3D7BFF" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="2 6" stroke="rgba(255,255,255,.04)" vertical={false} />
+                <XAxis dataKey="s" tick={{ fontSize: 9, fill: 'rgba(238,242,248,.2)', fontWeight: 600 }} axisLine={false} tickLine={false} tickFormatter={v => `S${v}`} />
+                <YAxis tick={{ fontSize: 9, fill: 'rgba(238,242,248,.2)' }} axisLine={false} tickLine={false} />
+                <Tooltip content={<ChartTip />} cursor={{ stroke: 'rgba(61,123,255,.2)', strokeWidth: 1 }} />
+                <Area type="monotone" dataKey="v" stroke="#3D7BFF" strokeWidth={2} fill="url(#dashGrad)" dot={false} activeDot={{ r: 4, fill: '#3D7BFF', strokeWidth: 0 }} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        );
+
+      case 'dash-alta-prio':
+        return (
+          <div className="bento-card" style={{
+            background: urgentTasks.length > 0
+              ? 'linear-gradient(145deg, rgba(255,107,107,.22) 0%, rgba(255,107,107,.08) 45%, #0B0D1A 72%)'
+              : '#0B0D1A',
+            borderRadius: 24, padding: '26px 28px',
+            border: `1px solid ${urgentTasks.length > 0 ? 'rgba(255,107,107,.38)' : 'rgba(255,255,255,.05)'}`,
+            position: 'relative', overflow: 'hidden',
+            display: 'flex', flexDirection: 'column', gap: 14,
+          }}>
+            {urgentTasks.length > 0 && (
+              <>
+                <div style={{ position: 'absolute', top: -60, right: -60, width: 220, height: 220, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,107,107,.22) 0%, transparent 70%)', pointerEvents: 'none' }} />
+                <div style={{ position: 'absolute', top: 0, left: 28, right: 28, height: 1, background: 'linear-gradient(90deg, transparent, rgba(255,107,107,.5), transparent)' }} />
+              </>
+            )}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ fontSize: '.6rem', fontWeight: 700, color: 'rgba(238,242,248,.22)', textTransform: 'uppercase', letterSpacing: '.12em' }}>Alta prioridade</div>
+              {!loading && urgentTasks.length > 0 && (
+                <span style={{ fontSize: '.62rem', fontWeight: 700, color: '#FF6B6B', background: 'rgba(255,107,107,.1)', border: '1px solid rgba(255,107,107,.2)', borderRadius: 20, padding: '2px 8px' }}>
+                  {urgentTasks.length}
+                </span>
+              )}
+            </div>
+            {loading ? <Skel w={60} h={48} r={8} /> : (
+              <div>
+                <div style={{ fontSize: '2.75rem', fontWeight: 800, lineHeight: 1, letterSpacing: '-.05em', color: urgentTasks.length > 0 ? '#FF6B6B' : '#EEF2F8' }}>
+                  {urgentTasks.length}
+                </div>
+                <div style={{ fontSize: '.7rem', color: 'rgba(238,242,248,.3)', marginTop: 6 }}>
+                  {urgentTasks.length === 0 ? 'Nenhuma tarefa crítica' : `tarefa${urgentTasks.length !== 1 ? 's' : ''} crítica${urgentTasks.length !== 1 ? 's' : ''}`}
+                </div>
+              </div>
+            )}
+            {!loading && urgentTasks.length > 0 && (
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {urgentTasks.slice(0, 3).map(t => (
+                  <a key={t.id} href={t.url} target="_blank" rel="noopener noreferrer"
+                    style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px', background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.05)', borderRadius: 10, transition: 'background .15s' }}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,.06)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,.03)')}
+                  >
+                    <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#FF6B6B', flexShrink: 0 }} />
+                    <span style={{ fontSize: '.68rem', color: '#EEF2F8', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 500 }}>{t.name}</span>
+                    <span style={{ fontSize: '.58rem', fontWeight: 700, color: '#FF6B6B', flexShrink: 0 }}>
+                      {t.priority?.priority === 'urgent' ? '!' : '↑'}
+                    </span>
+                  </a>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+
+      default:
+        return null;
+    }
+  }
 
   // ── Render ──────────────────────────────────────────────────────────
   return (
@@ -170,325 +438,13 @@ export default function Dashboard() {
           </Link>
         </div>
 
-        {/* ── BENTO GRID ───────────────────────────────────────────────── */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(12, 1fr)',
-          gridAutoRows: 'auto',
-          gap: 14,
-        }}>
-
-          {/* ══ 1. Hero — tarefas concluídas (cols 1-5, row 1) ════════ */}
-          <div className="bento-card" style={{
-            gridColumn: '1 / 6', gridRow: '1',
-            background: 'linear-gradient(145deg, rgba(74,222,128,.07) 0%, rgba(74,222,128,.02) 40%, #0B0D1A 70%)',
-            borderRadius: 24, padding: '28px 30px',
-            border: '1px solid rgba(74,222,128,.14)',
-            position: 'relative', overflow: 'hidden',
-            display: 'flex', flexDirection: 'column', gap: 14,
-            animationDelay: '.0s',
-          }}>
-            {/* Glow radial no canto */}
-            <div style={{ position: 'absolute', top: -60, left: -60, width: 240, height: 240, borderRadius: '50%', background: 'radial-gradient(circle, rgba(74,222,128,.09) 0%, transparent 70%)', pointerEvents: 'none' }} />
-            <div style={{ position: 'absolute', top: 0, left: 28, right: 28, height: 1, background: 'linear-gradient(90deg, transparent, rgba(74,222,128,.45), transparent)' }} />
-
-            <div style={{ fontSize: '.6rem', fontWeight: 700, color: 'rgba(238,242,248,.22)', textTransform: 'uppercase', letterSpacing: '.12em' }}>
-              Tarefas concluídas
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-              {loading
-                ? <Skel w={110} h={52} r={10} />
-                : (
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
-                    <span style={{ fontSize: '3.5rem', fontWeight: 800, color: '#EEF2F8', lineHeight: 1, letterSpacing: '-.05em' }}>{done}</span>
-                    <span style={{ fontSize: '1.125rem', fontWeight: 500, color: 'rgba(238,242,248,.3)', letterSpacing: '-.01em' }}>/{total}</span>
-                  </div>
-                )
-              }
-              {!loading && (
-                <div style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 5,
-                  background: 'rgba(74,222,128,.08)', border: '1px solid rgba(74,222,128,.18)',
-                  borderRadius: 20, padding: '5px 12px',
-                  fontSize: '.7rem', fontWeight: 700, color: '#4ADE80',
-                }}>
-                  ↑ {pctDone}% concluído
-                </div>
-              )}
-            </div>
-
-            <div style={{ flex: 1, minHeight: 48 }}>
-              <Spark total={total} />
-            </div>
-          </div>
-
-          {/* ══ 2. Andamento (cols 6-8, row 1) ═══════════════════════ */}
-          <div className="bento-card" style={{
-            gridColumn: '6 / 9', gridRow: '1',
-            background: '#0B0D1A', borderRadius: 24, padding: '24px 26px',
-            border: '1px solid rgba(255,255,255,.05)',
-            display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
-            animationDelay: '.05s',
-          }}>
-            <div style={{ fontSize: '.6rem', fontWeight: 700, color: 'rgba(238,242,248,.22)', textTransform: 'uppercase', letterSpacing: '.12em' }}>
-              Em andamento
-            </div>
-            {loading
-              ? <Skel w={80} h={48} r={8} />
-              : (
-                <div>
-                  <div style={{ fontSize: '2.75rem', fontWeight: 800, color: '#3D7BFF', lineHeight: 1, letterSpacing: '-.05em' }}>{inProg}</div>
-                  <div style={{ fontSize: '.7rem', color: 'rgba(238,242,248,.3)', marginTop: 6 }}>tarefas ativas agora</div>
-                </div>
-              )
-            }
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              <div style={{ fontSize: '.62rem', fontWeight: 700, color: '#FBBF24', background: 'rgba(251,191,36,.08)', border: '1px solid rgba(251,191,36,.18)', borderRadius: 20, padding: '3px 9px' }}>
-                {loading ? '–' : inReview} em aprovação
-              </div>
-              <div style={{ fontSize: '.62rem', fontWeight: 700, color: '#FF6B6B', background: 'rgba(255,107,107,.08)', border: '1px solid rgba(255,107,107,.18)', borderRadius: 20, padding: '3px 9px' }}>
-                {loading ? '–' : inAdj} em ajustes
-              </div>
-            </div>
-          </div>
-
-          {/* ══ 3. Arco de progresso (cols 9-12, row 1) ══════════════ */}
-          <div className="bento-card" style={{
-            gridColumn: '9 / 13', gridRow: '1',
-            background: '#0B0D1A', borderRadius: 24, padding: '24px 26px',
-            border: '1px solid rgba(255,255,255,.05)',
-            display: 'flex', flexDirection: 'column', gap: 18,
-            animationDelay: '.1s',
-          }}>
-            <div style={{ fontSize: '.6rem', fontWeight: 700, color: 'rgba(238,242,248,.22)', textTransform: 'uppercase', letterSpacing: '.12em' }}>
-              Status geral
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
-              {loading
-                ? <Skel w={72} h={72} r={36} />
-                : (
-                  <div style={{ position: 'relative', flexShrink: 0 }}>
-                    <svg width="72" height="72" viewBox="0 0 72 72">
-                      <circle cx="36" cy="36" r="28" fill="none" stroke="rgba(255,255,255,.05)" strokeWidth="5" />
-                      <circle cx="36" cy="36" r="28" fill="none"
-                        stroke="#4ADE80" strokeWidth="5"
-                        strokeDasharray={`${(pctDone / 100) * circ} ${circ}`}
-                        transform="rotate(-90 36 36)"
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                    <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
-                      <span style={{ fontSize: '1rem', fontWeight: 800, color: '#EEF2F8', lineHeight: 1, letterSpacing: '-.03em' }}>{pctDone}%</span>
-                      <span style={{ fontSize: '.42rem', color: 'rgba(238,242,248,.25)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.06em' }}>done</span>
-                    </div>
-                  </div>
-                )
-              }
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {loading
-                  ? [1,2,3].map(i => <Skel key={i} w="100%" h={12} r={4} />)
-                  : donutData.slice(0, 3).map(d => (
-                    <div key={d.name} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span style={{ width: 5, height: 5, borderRadius: '50%', background: d.color, flexShrink: 0 }} />
-                      <span style={{ fontSize: '.68rem', color: 'rgba(238,242,248,.4)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.name}</span>
-                      <span style={{ fontSize: '.68rem', fontWeight: 700, color: 'rgba(238,242,248,.7)' }}>{d.value}</span>
-                    </div>
-                  ))
-                }
-              </div>
-            </div>
-          </div>
-
-          {/* ══ 4. Times — 4 cards individuais (row 2) ════════════════ */}
-          {loading
-            ? [0,1,2,3].map(i => (
-              <div key={i} className="bento-card" style={{
-                gridColumn: `${i * 3 + 1} / ${i * 3 + 4}`, gridRow: '2',
-                background: '#0B0D1A', borderRadius: 20, padding: '22px 24px',
-                border: '1px solid rgba(255,255,255,.05)',
-                display: 'flex', flexDirection: 'column', gap: 14,
-                animationDelay: `${.15 + i * .05}s`,
-              }}>
-                <Skel w={80} h={10} />
-                <Skel w={50} h={34} />
-                <Skel w="100%" h={4} r={4} />
-              </div>
-            ))
-            : teams.map((t, i) => {
-              const tDone = t.tasks.filter(tk => tk.status.type === 'closed').length;
-              const tProg = pct(tDone, t.tasks.length);
-              const tInP  = t.tasks.filter(tk => tk.status.status === 'em andamento').length;
-              return (
-                <Link
-                  key={t.key}
-                  to={t.path}
-                  className="bento-card"
-                  style={{
-                    gridColumn: `${i * 3 + 1} / ${i * 3 + 4}`, gridRow: '2',
-                    background: '#0B0D1A', borderRadius: 20, padding: '22px 24px',
-                    border: `1px solid rgba(255,255,255,.05)`,
-                    display: 'flex', flexDirection: 'column', gap: 12,
-                    textDecoration: 'none', transition: 'border-color .2s, transform .2s',
-                    animationDelay: `${.15 + i * .05}s`,
-                  }}
-                  onMouseEnter={e => {
-                    (e.currentTarget as HTMLElement).style.borderColor = `${t.color}30`;
-                    (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)';
-                  }}
-                  onMouseLeave={e => {
-                    (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,.05)';
-                    (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: t.color, flexShrink: 0 }} />
-                      <span style={{ fontSize: '.68rem', fontWeight: 700, color: 'rgba(238,242,248,.4)', textTransform: 'uppercase', letterSpacing: '.08em' }}>{t.label}</span>
-                    </div>
-                    <span style={{
-                      fontSize: '.58rem', fontWeight: 700,
-                      background: `${t.color}14`, color: t.color,
-                      border: `1px solid ${t.color}28`, borderRadius: 20, padding: '2px 8px',
-                    }}>{tDone}/{t.tasks.length}</span>
-                  </div>
-
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-                    <span style={{ fontSize: '2.25rem', fontWeight: 800, color: '#EEF2F8', lineHeight: 1, letterSpacing: '-.04em' }}>{tProg}%</span>
-                    <span style={{ fontSize: '.7rem', color: 'rgba(238,242,248,.3)' }}>concluído</span>
-                  </div>
-
-                  <div>
-                    <div style={{ height: 4, background: 'rgba(255,255,255,.06)', borderRadius: 4, overflow: 'hidden' }}>
-                      <div style={{ width: `${tProg}%`, height: '100%', background: t.color, borderRadius: 4, transition: 'width .6s ease' }} />
-                    </div>
-                    {tInP > 0 && (
-                      <div style={{ fontSize: '.6rem', color: 'rgba(238,242,248,.28)', marginTop: 6 }}>
-                        {tInP} em andamento
-                      </div>
-                    )}
-                  </div>
-                </Link>
-              );
-            })
-          }
-
-          {/* ══ 5. Tendência — gráfico (cols 1-8, row 3) ══════════════ */}
-          <div className="bento-card" style={{
-            gridColumn: '1 / 9', gridRow: '3',
-            background: 'linear-gradient(180deg, rgba(61,123,255,.07) 0%, rgba(61,123,255,.02) 35%, #0B0D1A 65%)',
-            borderRadius: 24, padding: '26px 28px',
-            border: '1px solid rgba(61,123,255,.12)',
-            position: 'relative', overflow: 'hidden',
-            display: 'flex', flexDirection: 'column', gap: 18,
-            animationDelay: '.35s',
-          }}>
-            {/* Glow radial topo */}
-            <div style={{ position: 'absolute', top: -80, left: '30%', width: 300, height: 200, background: 'radial-gradient(ellipse, rgba(61,123,255,.07) 0%, transparent 70%)', pointerEvents: 'none' }} />
-            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-              <div>
-                <div style={{ fontSize: '.6rem', fontWeight: 700, color: 'rgba(238,242,248,.22)', textTransform: 'uppercase', letterSpacing: '.12em', marginBottom: 6 }}>
-                  Tendência de entrega
-                </div>
-                <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#EEF2F8', letterSpacing: '-.03em' }}>
-                  {loading ? '–' : total}
-                  <span style={{ fontSize: '.875rem', fontWeight: 500, color: 'rgba(238,242,248,.3)', marginLeft: 6 }}>tasks totais</span>
-                </div>
-              </div>
-              <a
-                href={`https://app.clickup.com/${CU.SPACE_ID}`}
-                target="_blank" rel="noopener noreferrer"
-                style={{ fontSize: '.68rem', fontWeight: 600, color: '#3D7BFF', textDecoration: 'none', opacity: .7 }}
-                onMouseEnter={e => (e.currentTarget.style.opacity = '1')}
-                onMouseLeave={e => (e.currentTarget.style.opacity = '.7')}
-              >
-                Ver no ClickUp →
-              </a>
-            </div>
-
-            <ResponsiveContainer width="100%" height={140}>
-              <AreaChart data={sparkData} margin={{ top: 4, right: 4, left: -24, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="dashGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#3D7BFF" stopOpacity={0.2} />
-                    <stop offset="100%" stopColor="#3D7BFF" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="2 6" stroke="rgba(255,255,255,.04)" vertical={false} />
-                <XAxis dataKey="s" tick={{ fontSize: 9, fill: 'rgba(238,242,248,.2)', fontWeight: 600 }} axisLine={false} tickLine={false}
-                  tickFormatter={v => `S${v}`} />
-                <YAxis tick={{ fontSize: 9, fill: 'rgba(238,242,248,.2)' }} axisLine={false} tickLine={false} />
-                <Tooltip content={<ChartTip />} cursor={{ stroke: 'rgba(61,123,255,.2)', strokeWidth: 1 }} />
-                <Area type="monotone" dataKey="v" stroke="#3D7BFF" strokeWidth={2}
-                  fill="url(#dashGrad)" dot={false}
-                  activeDot={{ r: 4, fill: '#3D7BFF', strokeWidth: 0 }} />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-
-          {/* ══ 6. Alta prioridade (cols 9-12, row 3) ═════════════════ */}
-          <div className="bento-card" style={{
-            gridColumn: '9 / 13', gridRow: '3',
-            background: urgentTasks.length > 0
-              ? 'linear-gradient(145deg, rgba(255,107,107,.22) 0%, rgba(255,107,107,.08) 45%, #0B0D1A 72%)'
-              : '#0B0D1A',
-            borderRadius: 24, padding: '26px 28px',
-            border: `1px solid ${urgentTasks.length > 0 ? 'rgba(255,107,107,.38)' : 'rgba(255,255,255,.05)'}`,
-            position: 'relative', overflow: 'hidden',
-            display: 'flex', flexDirection: 'column', gap: 14,
-            animationDelay: '.4s',
-          }}>
-            {urgentTasks.length > 0 && (
-              <>
-                <div style={{ position: 'absolute', top: -60, right: -60, width: 220, height: 220, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,107,107,.22) 0%, transparent 70%)', pointerEvents: 'none' }} />
-                <div style={{ position: 'absolute', top: 0, left: 28, right: 28, height: 1, background: 'linear-gradient(90deg, transparent, rgba(255,107,107,.5), transparent)' }} />
-              </>
-            )}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ fontSize: '.6rem', fontWeight: 700, color: 'rgba(238,242,248,.22)', textTransform: 'uppercase', letterSpacing: '.12em' }}>
-                Alta prioridade
-              </div>
-              {!loading && urgentTasks.length > 0 && (
-                <span style={{ fontSize: '.62rem', fontWeight: 700, color: '#FF6B6B', background: 'rgba(255,107,107,.1)', border: '1px solid rgba(255,107,107,.2)', borderRadius: 20, padding: '2px 8px' }}>
-                  {urgentTasks.length}
-                </span>
-              )}
-            </div>
-
-            {loading
-              ? <Skel w={60} h={48} r={8} />
-              : (
-                <div>
-                  <div style={{ fontSize: '2.75rem', fontWeight: 800, lineHeight: 1, letterSpacing: '-.05em', color: urgentTasks.length > 0 ? '#FF6B6B' : '#EEF2F8' }}>
-                    {urgentTasks.length}
-                  </div>
-                  <div style={{ fontSize: '.7rem', color: 'rgba(238,242,248,.3)', marginTop: 6 }}>
-                    {urgentTasks.length === 0 ? 'Nenhuma tarefa crítica' : `tarefa${urgentTasks.length !== 1 ? 's' : ''} crítica${urgentTasks.length !== 1 ? 's' : ''}`}
-                  </div>
-                </div>
-              )
-            }
-
-            {!loading && urgentTasks.length > 0 && (
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {urgentTasks.slice(0, 3).map(t => (
-                  <a key={t.id} href={t.url} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px', background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.05)', borderRadius: 10, transition: 'background .15s' }}
-                    onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,.06)')}
-                    onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,.03)')}
-                  >
-                    <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#FF6B6B', flexShrink: 0 }} />
-                    <span style={{ fontSize: '.68rem', color: '#EEF2F8', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 500 }}>{t.name}</span>
-                    <span style={{ fontSize: '.58rem', fontWeight: 700, color: '#FF6B6B', flexShrink: 0 }}>
-                      {t.priority?.priority === 'urgent' ? '!' : '↑'}
-                    </span>
-                  </a>
-                ))}
-              </div>
-            )}
-          </div>
-
-        </div>
+        {/* ── BENTO GRID (with layout editor) ─────────────────────────── */}
+        <GridLayout
+          pageId="dashboard"
+          cards={DASHBOARD_CARDS}
+          renderCard={renderCard}
+          gap={14}
+        />
       </div>
     </>
   );
