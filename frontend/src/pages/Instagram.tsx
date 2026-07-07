@@ -246,9 +246,15 @@ export default function Instagram() {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
 
         {/* Visualizações por tipo */}
-        <div style={{ background: '#F5F7FA', borderRadius: 20, padding: '1.375rem 1.5rem' }}>
+        <div style={{
+          background: 'linear-gradient(145deg, rgba(61,123,255,.07) 0%, rgba(61,123,255,.02) 40%, #0B0D1A 70%)',
+          borderRadius: 20, padding: '1.375rem 1.5rem',
+          border: '1px solid rgba(61,123,255,.14)',
+          position: 'relative', overflow: 'hidden',
+        }}>
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, #3D7BFF, transparent)', borderRadius: '20px 20px 0 0' }} />
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.125rem' }}>
-            <span style={{ fontSize: '.9rem', fontWeight: 700, color: '#111827' }}>Visualizações por tipo</span>
+            <span style={{ fontSize: '.9rem', fontWeight: 700, color: '#EEF2F8' }}>Visualizações por tipo</span>
             <div style={{ display: 'flex', gap: 4 }}>
               {[
                 { k: 'tudo',       l: 'Tudo' },
@@ -258,9 +264,9 @@ export default function Instagram() {
                 <button key={f.k} onClick={() => setVizFiltro(f.k as any)} style={{
                   padding: '.2rem .55rem', borderRadius: 6, border: '1px solid',
                   fontSize: '.65rem', fontWeight: 600, cursor: 'pointer',
-                  background: vizFiltro === f.k ? '#111827' : 'transparent',
-                  borderColor: vizFiltro === f.k ? '#111827' : 'rgba(0,0,0,.15)',
-                  color: vizFiltro === f.k ? '#fff' : '#6B7280',
+                  background: vizFiltro === f.k ? 'rgba(61,123,255,.2)' : 'transparent',
+                  borderColor: vizFiltro === f.k ? 'rgba(61,123,255,.5)' : 'rgba(255,255,255,.1)',
+                  color: vizFiltro === f.k ? '#3D7BFF' : 'rgba(238,242,248,.4)',
                 }}>
                   {f.l}
                 </button>
@@ -270,13 +276,13 @@ export default function Instagram() {
           {d.vizTipo.map(item => (
             <div key={item.label} style={{ marginBottom: '1rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '.35rem' }}>
-                <span style={{ fontSize: '.875rem', fontWeight: 500, color: '#374151' }}>{item.label}</span>
+                <span style={{ fontSize: '.875rem', fontWeight: 500, color: 'rgba(238,242,248,.75)' }}>{item.label}</span>
                 <div style={{ display: 'flex', gap: '.4rem', alignItems: 'baseline' }}>
-                  <span style={{ fontSize: '.875rem', fontWeight: 700, color: '#111827' }}>{fmt(item.valor)}</span>
-                  <span style={{ fontSize: '.75rem', color: '#9CA3AF' }}>{item.pct}%</span>
+                  <span style={{ fontSize: '.875rem', fontWeight: 700, color: '#EEF2F8' }}>{fmt(item.valor)}</span>
+                  <span style={{ fontSize: '.75rem', color: 'rgba(238,242,248,.3)' }}>{item.pct}%</span>
                 </div>
               </div>
-              <div style={{ height: 5, borderRadius: 3, background: 'rgba(0,0,0,.07)', overflow: 'hidden' }}>
+              <div style={{ height: 5, borderRadius: 3, background: 'rgba(255,255,255,.06)', overflow: 'hidden' }}>
                 <div style={{ width: `${(item.valor / maxViz) * 100}%`, height: '100%', background: '#3D7BFF', borderRadius: 3, transition: 'width .5s ease' }} />
               </div>
             </div>
@@ -287,18 +293,24 @@ export default function Instagram() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
 
           {/* por público */}
-          <div style={{ background: '#F5F7FA', borderRadius: 20, padding: '1.375rem 1.5rem', flex: 1 }}>
-            <div style={{ fontSize: '.9rem', fontWeight: 700, color: '#111827', marginBottom: '1.125rem' }}>Visualizações por público</div>
+          <div style={{
+            background: 'linear-gradient(145deg, rgba(61,123,255,.07) 0%, rgba(61,123,255,.02) 40%, #0B0D1A 70%)',
+            borderRadius: 20, padding: '1.375rem 1.5rem', flex: 1,
+            border: '1px solid rgba(61,123,255,.14)',
+            position: 'relative', overflow: 'hidden',
+          }}>
+            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, #3D7BFF, transparent)', borderRadius: '20px 20px 0 0' }} />
+            <div style={{ fontSize: '.9rem', fontWeight: 700, color: '#EEF2F8', marginBottom: '1.125rem' }}>Visualizações por público</div>
             {d.vizPublico.map(item => (
               <div key={item.label} style={{ marginBottom: '.875rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '.35rem' }}>
-                  <span style={{ fontSize: '.875rem', fontWeight: 500, color: '#374151' }}>{item.label}</span>
+                  <span style={{ fontSize: '.875rem', fontWeight: 500, color: 'rgba(238,242,248,.75)' }}>{item.label}</span>
                   <div style={{ display: 'flex', gap: '.4rem', alignItems: 'baseline' }}>
-                    <span style={{ fontSize: '.875rem', fontWeight: 700, color: '#111827' }}>{fmt(item.valor)}</span>
-                    <span style={{ fontSize: '.75rem', color: '#9CA3AF' }}>{item.pct}%</span>
+                    <span style={{ fontSize: '.875rem', fontWeight: 700, color: '#EEF2F8' }}>{fmt(item.valor)}</span>
+                    <span style={{ fontSize: '.75rem', color: 'rgba(238,242,248,.3)' }}>{item.pct}%</span>
                   </div>
                 </div>
-                <div style={{ height: 5, borderRadius: 3, background: 'rgba(0,0,0,.07)', overflow: 'hidden' }}>
+                <div style={{ height: 5, borderRadius: 3, background: 'rgba(255,255,255,.06)', overflow: 'hidden' }}>
                   <div style={{ width: `${(item.valor / maxPub) * 100}%`, height: '100%', background: '#3D7BFF', borderRadius: 3, transition: 'width .5s ease' }} />
                 </div>
               </div>
@@ -352,15 +364,15 @@ export default function Instagram() {
       {/* ══ BOTTOM ROW — toques + nota ════════════════════════════════ */}
       <div style={{ display: 'grid', gridTemplateColumns: '200px 1fr', gap: 12 }}>
         <KpiCard label="Toques no endereço" value={d.toques} sub={`últimos ${periodo} dias`} accent="#4ADE80" />
-        <div style={{ background: '#F5F7FA', borderRadius: 20, padding: '1.125rem 1.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+        <div style={{ background: '#0C0F1C', borderRadius: 20, padding: '1.125rem 1.5rem', display: 'flex', alignItems: 'center', gap: '1rem', border: '1px solid rgba(61,123,255,.12)' }}>
           <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(61,123,255,.1)', border: '1px solid rgba(61,123,255,.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <svg viewBox="0 0 24 24" fill="none" stroke="#3D7BFF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
               <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
             </svg>
           </div>
           <div>
-            <div style={{ fontSize: '.8125rem', fontWeight: 600, color: '#111827', marginBottom: '.2rem' }}>Dados mockados — integração Meta API em breve</div>
-            <div style={{ fontSize: '.75rem', color: '#6B7280' }}>
+            <div style={{ fontSize: '.8125rem', fontWeight: 600, color: '#EEF2F8', marginBottom: '.2rem' }}>Dados mockados — integração Meta API em breve</div>
+            <div style={{ fontSize: '.75rem', color: 'rgba(238,242,248,.4)' }}>
               Os dados acima são simulados com base nas métricas reais de junho/2026. A conexão com a Meta Business API será ativada na próxima fase.
             </div>
           </div>
