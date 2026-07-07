@@ -87,11 +87,12 @@ export default function Layout({ children }: LayoutProps) {
 
         {/* Logo */}
         <Link to="/dashboard" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0, marginRight: 28 }}>
-          {/* Red O mark — recreated from brand identity */}
-          <svg width="32" height="32" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M50 8C26.8 8 8 26.8 8 50s18.8 42 42 42 42-18.8 42-42S73.2 8 50 8zm0 66c-13.3 0-24-10.7-24-24s10.7-24 24-24 24 10.7 24 24-10.7 24-24 24z" fill="#CF190F"/>
-          </svg>
-          <div style={{ fontFamily: 'Sora, sans-serif', fontWeight: 800, fontSize: '1rem', color: 'var(--nova-text)', letterSpacing: '.04em', lineHeight: 1 }}>
+          <img src="/logo-nova.svg" alt="Nova" style={{ height: 28, width: 'auto' }} />
+          <div style={{
+            fontFamily: 'Sora, sans-serif', fontWeight: 800, fontSize: '.95rem',
+            color: 'var(--nova-text)', letterSpacing: '.06em', lineHeight: 1,
+            borderLeft: '1.5px solid rgba(255,255,255,.12)', paddingLeft: 10,
+          }}>
             I MKT
           </div>
         </Link>
