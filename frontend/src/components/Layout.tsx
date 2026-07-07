@@ -86,21 +86,13 @@ export default function Layout({ children }: LayoutProps) {
       }}>
 
         {/* Logo */}
-        <Link to="/dashboard" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '.5rem', flexShrink: 0, marginRight: 28 }}>
-          <div style={{ fontFamily: 'Sora, sans-serif', fontWeight: 800, fontSize: '1rem', display: 'flex', alignItems: 'center', letterSpacing: '.03em' }}>
-            <span style={{ color: 'var(--nova-text)' }}>N</span>
-            <span style={{
-              display: 'inline-block', width: '.88em', height: '.88em',
-              border: '2.5px solid var(--nova-red)', borderRadius: '50%',
-              margin: '0 .03em', transform: 'translateY(.07em)',
-            }} />
-            <span style={{ color: 'var(--nova-text)' }}>VA</span>
-          </div>
-          <div style={{
-            fontSize: '.55rem', fontWeight: 700, color: 'rgba(238,242,248,.25)',
-            textTransform: 'uppercase', letterSpacing: '.12em', paddingTop: 2,
-          }}>
-            Promotora
+        <Link to="/dashboard" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0, marginRight: 28 }}>
+          {/* Red O mark — recreated from brand identity */}
+          <svg width="32" height="32" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M50 8C26.8 8 8 26.8 8 50s18.8 42 42 42 42-18.8 42-42S73.2 8 50 8zm0 66c-13.3 0-24-10.7-24-24s10.7-24 24-24 24 10.7 24 24-10.7 24-24 24z" fill="#CF190F"/>
+          </svg>
+          <div style={{ fontFamily: 'Sora, sans-serif', fontWeight: 800, fontSize: '1rem', color: 'var(--nova-text)', letterSpacing: '.04em', lineHeight: 1 }}>
+            I MKT
           </div>
         </Link>
 
