@@ -4,34 +4,49 @@ import { Link, useLocation } from 'react-router-dom';
 const NAV_GROUPS = [
   {
     items: [
-      { label: 'Dashboard',      to: '/dashboard', exact: true },
-      { label: 'Nova Campanha',  to: '/',          exact: true },
-      { label: 'Sprints',        to: '/sprints' },
-      { label: 'Eventos',        to: '/eventos' },
+      { label: 'Dashboard',     to: '/dashboard', exact: true,  icon: 'grid' },
+      { label: 'Nova Campanha', to: '/',          exact: true,  icon: 'plus' },
+      { label: 'Sprints',       to: '/sprints',                 icon: 'zap' },
+      { label: 'Eventos',       to: '/eventos',                 icon: 'calendar' },
     ],
   },
   {
     label: 'Times',
     items: [
-      { label: 'Social',         to: '/time/social',       color: '#3D7BFF' },
-      { label: 'Benchmarking',   to: '/time/benchmarking', color: '#6F9BFF' },
-      { label: 'Atendimento',    to: '/time/atendimento',  color: '#4ADE80' },
-      { label: 'Design',         to: '/time/design',       color: '#FBBF24' },
+      { label: 'Social',       to: '/time/social',       color: '#3D7BFF', icon: 'share' },
+      { label: 'Benchmarking', to: '/time/benchmarking', color: '#6F9BFF', icon: 'bar-chart' },
+      { label: 'Atendimento',  to: '/time/atendimento',  color: '#4ADE80', icon: 'headphones' },
+      { label: 'Design',       to: '/time/design',       color: '#FBBF24', icon: 'pen-tool' },
     ],
   },
   {
     label: 'Canais',
     items: [
-      { label: 'Instagram',      to: '/instagram',         color: '#E1306C' },
+      { label: 'Instagram', to: '/instagram', color: '#E1306C', icon: 'instagram' },
     ],
   },
 ];
 
+function NavIcon({ name, size = 15 }: { name: string; size?: number }) {
+  const s = { width: size, height: size, flexShrink: 0 as const };
+  const props = { viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '1.75', strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, ...s };
+  if (name === 'grid')       return <svg {...props}><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>;
+  if (name === 'plus')       return <svg {...props}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>;
+  if (name === 'zap')        return <svg {...props}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>;
+  if (name === 'calendar')   return <svg {...props}><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>;
+  if (name === 'share')      return <svg {...props}><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>;
+  if (name === 'bar-chart')  return <svg {...props}><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>;
+  if (name === 'headphones') return <svg {...props}><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>;
+  if (name === 'pen-tool')   return <svg {...props}><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg>;
+  if (name === 'instagram')  return <svg {...props}><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>;
+  return null;
+}
+
 interface LayoutProps { children: React.ReactNode; }
 
 export default function Layout({ children }: LayoutProps) {
-  const [theme, setTheme]       = useState<'dark' | 'light'>('dark');
-  const [a11yOpen, setA11yOpen] = useState(false);
+  const [theme, setTheme]         = useState<'dark' | 'light'>('dark');
+  const [a11yOpen, setA11yOpen]   = useState(false);
   const [a11yLevel, setA11yLevel] = useState<'' | 'a-plus' | 'a-plus-plus'>('');
   const [lastUpdated, setLastUpdated] = useState(new Date());
   const a11yRef = useRef<HTMLDivElement>(null);
@@ -71,46 +86,55 @@ export default function Layout({ children }: LayoutProps) {
     return exact ? location.pathname === to : location.pathname.startsWith(to);
   }
 
-  return (
-    <div style={{ minHeight: '100vh', background: 'var(--nova-bg)', display: 'flex', flexDirection: 'column' }}>
+  const iconBtn: React.CSSProperties = {
+    width: 32, height: 32, borderRadius: 8,
+    border: '1px solid rgba(255,255,255,.07)',
+    background: 'transparent', color: 'rgba(238,242,248,.4)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    cursor: 'pointer', transition: 'all .15s',
+  };
 
-      {/* ── TOP NAVBAR ─────────────────────────────────────────────────── */}
-      <header style={{
-        background: 'rgba(8,10,18,.92)',
-        backdropFilter: 'blur(16px)',
-        WebkitBackdropFilter: 'blur(16px)',
-        borderBottom: '1px solid rgba(255,255,255,.05)',
-        position: 'sticky', top: 0, zIndex: 100,
-        display: 'flex', alignItems: 'center',
-        padding: '0 24px', height: 52, gap: 0,
+  return (
+    <div style={{ minHeight: '100vh', background: 'var(--nova-bg)', display: 'flex' }}>
+
+      {/* ── LEFT SIDEBAR ─────────────────────────────────────────────────── */}
+      <aside style={{
+        width: 220, flexShrink: 0,
+        background: 'rgba(8,10,18,.95)',
+        borderRight: '1px solid rgba(255,255,255,.05)',
+        display: 'flex', flexDirection: 'column',
+        position: 'sticky', top: 0, height: '100vh',
+        overflowY: 'auto', overflowX: 'hidden',
       }}>
 
         {/* Logo */}
-        <Link to="/dashboard" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0, marginRight: 28 }}>
-          <img src="/logo-nova.svg" alt="Nova" style={{ height: 20, width: 'auto' }} />
+        <Link to="/dashboard" style={{
+          textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10,
+          padding: '20px 18px 16px', flexShrink: 0,
+          borderBottom: '1px solid rgba(255,255,255,.05)',
+        }}>
+          <img src="/logo-nova.svg" alt="Nova" style={{ height: 18, width: 'auto' }} />
           <div style={{
-            fontFamily: 'Sora, sans-serif', fontWeight: 800, fontSize: '.95rem',
+            fontFamily: 'Sora, sans-serif', fontWeight: 800, fontSize: '.85rem',
             color: 'var(--nova-text)', letterSpacing: '.06em', lineHeight: 1,
-            borderLeft: '1.5px solid rgba(255,255,255,.12)', paddingLeft: 10,
+            borderLeft: '1.5px solid rgba(255,255,255,.12)', paddingLeft: 9,
           }}>
             I MKT
           </div>
         </Link>
 
-        {/* Divider */}
-        <div style={{ width: 1, height: 18, background: 'rgba(255,255,255,.07)', marginRight: 24, flexShrink: 0 }} />
-
-        {/* Nav items */}
-        <nav style={{ display: 'flex', alignItems: 'center', gap: 2, flex: 1, overflowX: 'auto', scrollbarWidth: 'none' }}>
+        {/* Nav */}
+        <nav style={{ flex: 1, padding: '10px 10px', display: 'flex', flexDirection: 'column', gap: 2 }}>
           {NAV_GROUPS.map((group, gi) => (
-            <div key={gi} style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              {gi > 0 && (
-                <div style={{ width: 1, height: 14, background: 'rgba(255,255,255,.07)', margin: '0 8px', flexShrink: 0 }} />
-              )}
+            <div key={gi} style={{ marginTop: gi > 0 ? 16 : 0 }}>
               {group.label && (
-                <span style={{ fontSize: '.55rem', fontWeight: 700, color: 'rgba(238,242,248,.2)', textTransform: 'uppercase', letterSpacing: '.1em', paddingRight: 6, flexShrink: 0 }}>
+                <div style={{
+                  fontSize: '.55rem', fontWeight: 700, color: 'rgba(238,242,248,.2)',
+                  textTransform: 'uppercase', letterSpacing: '.12em',
+                  padding: '0 8px', marginBottom: 4,
+                }}>
                   {group.label}
-                </span>
+                </div>
               )}
               {group.items.map(item => {
                 const active = isActive(item.to, (item as any).exact);
@@ -120,22 +144,20 @@ export default function Layout({ children }: LayoutProps) {
                     key={item.to}
                     to={item.to}
                     style={{
-                      display: 'inline-flex', alignItems: 'center',
-                      padding: '5px 12px', borderRadius: 8,
-                      fontSize: '.75rem', fontWeight: active ? 600 : 500,
+                      display: 'flex', alignItems: 'center', gap: 9,
+                      padding: '8px 10px', borderRadius: 10,
+                      fontSize: '.78rem', fontWeight: active ? 600 : 500,
                       color: active ? color : 'rgba(238,242,248,.45)',
                       background: active ? `${color}14` : 'transparent',
-                      border: `1px solid ${active ? `${color}28` : 'transparent'}`,
-                      textDecoration: 'none', whiteSpace: 'nowrap',
-                      transition: 'all .15s',
-                      flexShrink: 0,
+                      textDecoration: 'none', transition: 'all .15s',
+                      borderLeft: active ? `2px solid ${color}` : '2px solid transparent',
                     }}
-                    onMouseEnter={e => { if (!active) (e.currentTarget as HTMLElement).style.color = 'rgba(238,242,248,.8)'; }}
-                    onMouseLeave={e => { if (!active) (e.currentTarget as HTMLElement).style.color = 'rgba(238,242,248,.45)'; }}
+                    onMouseEnter={e => { if (!active) { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,.04)'; (e.currentTarget as HTMLElement).style.color = 'rgba(238,242,248,.8)'; } }}
+                    onMouseLeave={e => { if (!active) { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.color = 'rgba(238,242,248,.45)'; } }}
                   >
-                    {active && (item as any).color && (
-                      <span style={{ width: 5, height: 5, borderRadius: '50%', background: color, marginRight: 6, flexShrink: 0 }} />
-                    )}
+                    <span style={{ color: active ? color : 'rgba(238,242,248,.3)', transition: 'color .15s' }}>
+                      <NavIcon name={(item as any).icon} />
+                    </span>
                     {item.label}
                   </Link>
                 );
@@ -144,19 +166,20 @@ export default function Layout({ children }: LayoutProps) {
           ))}
         </nav>
 
-        {/* Right controls */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, marginLeft: 20 }}>
-
+        {/* Bottom controls */}
+        <div style={{
+          padding: '12px 14px', borderTop: '1px solid rgba(255,255,255,.05)',
+          display: 'flex', alignItems: 'center', gap: 6,
+        }}>
           {/* Sync */}
           <button
             onClick={() => setLastUpdated(new Date())}
             title="Atualizar dados"
             style={{
-              display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px',
-              borderRadius: 8, border: '1px solid rgba(255,255,255,.07)',
+              flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+              padding: '5px 8px', borderRadius: 8, border: '1px solid rgba(255,255,255,.07)',
               background: 'transparent', color: 'rgba(238,242,248,.35)',
-              fontSize: '.65rem', fontWeight: 600, cursor: 'pointer',
-              transition: 'all .15s',
+              fontSize: '.62rem', fontWeight: 600, cursor: 'pointer', transition: 'all .15s',
             }}
             onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = 'rgba(238,242,248,.7)'; (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,.14)'; }}
             onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = 'rgba(238,242,248,.35)'; (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,.07)'; }}
@@ -169,16 +192,7 @@ export default function Layout({ children }: LayoutProps) {
           </button>
 
           {/* Theme */}
-          <button
-            onClick={toggleTheme}
-            title={theme === 'dark' ? 'Modo claro' : 'Modo escuro'}
-            style={{
-              width: 32, height: 32, borderRadius: 8,
-              border: '1px solid rgba(255,255,255,.07)',
-              background: 'transparent', color: 'rgba(238,242,248,.4)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              cursor: 'pointer', transition: 'all .15s',
-            }}
+          <button onClick={toggleTheme} title={theme === 'dark' ? 'Modo claro' : 'Modo escuro'} style={iconBtn}
             onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = 'rgba(238,242,248,.8)'; (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,.14)'; }}
             onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = 'rgba(238,242,248,.4)'; (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,.07)'; }}
           >
@@ -190,23 +204,14 @@ export default function Layout({ children }: LayoutProps) {
 
           {/* A11y */}
           <div ref={a11yRef} style={{ position: 'relative' }}>
-            <button
-              onClick={() => setA11yOpen(!a11yOpen)}
-              title="Acessibilidade"
-              style={{
-                width: 32, height: 32, borderRadius: 8,
-                border: '1px solid rgba(255,255,255,.07)',
-                background: a11yOpen ? 'rgba(255,255,255,.05)' : 'transparent',
-                color: 'rgba(238,242,248,.4)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                cursor: 'pointer', fontSize: '.65rem', fontWeight: 700, transition: 'all .15s',
-              }}
+            <button onClick={() => setA11yOpen(!a11yOpen)} title="Acessibilidade"
+              style={{ ...iconBtn, background: a11yOpen ? 'rgba(255,255,255,.05)' : 'transparent', fontSize: '.65rem', fontWeight: 700 }}
             >A</button>
             {a11yOpen && (
               <div style={{
-                position: 'absolute', top: 'calc(100% + 8px)', right: 0,
+                position: 'absolute', bottom: 'calc(100% + 8px)', left: 0,
                 background: '#0E101A', border: '1px solid rgba(255,255,255,.08)',
-                borderRadius: 12, padding: '12px', width: 148, zIndex: 200,
+                borderRadius: 12, padding: 12, width: 148, zIndex: 200,
                 boxShadow: '0 16px 48px rgba(0,0,0,.6)',
               }}>
                 <div style={{ fontSize: '.55rem', fontWeight: 700, color: 'rgba(238,242,248,.25)', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 8 }}>
@@ -214,17 +219,13 @@ export default function Layout({ children }: LayoutProps) {
                 </div>
                 <div style={{ display: 'flex', gap: 4 }}>
                   {(['', 'a-plus', 'a-plus-plus'] as const).map((lvl, i) => (
-                    <button
-                      key={lvl}
-                      onClick={() => setA11y(lvl)}
-                      style={{
-                        flex: 1, height: 28, borderRadius: 6,
-                        border: `1px solid ${a11yLevel === lvl ? 'rgba(61,123,255,.4)' : 'rgba(255,255,255,.08)'}`,
-                        background: a11yLevel === lvl ? 'rgba(61,123,255,.12)' : 'transparent',
-                        color: a11yLevel === lvl ? '#3D7BFF' : 'rgba(238,242,248,.45)',
-                        fontSize: '.7rem', fontWeight: 700, cursor: 'pointer',
-                      }}
-                    >
+                    <button key={lvl} onClick={() => setA11y(lvl)} style={{
+                      flex: 1, height: 28, borderRadius: 6,
+                      border: `1px solid ${a11yLevel === lvl ? 'rgba(61,123,255,.4)' : 'rgba(255,255,255,.08)'}`,
+                      background: a11yLevel === lvl ? 'rgba(61,123,255,.12)' : 'transparent',
+                      color: a11yLevel === lvl ? '#3D7BFF' : 'rgba(238,242,248,.45)',
+                      fontSize: '.7rem', fontWeight: 700, cursor: 'pointer',
+                    }}>
                       {['A', 'A+', 'A++'][i]}
                     </button>
                   ))}
@@ -236,18 +237,16 @@ export default function Layout({ children }: LayoutProps) {
           {/* Avatar */}
           <div style={{
             width: 30, height: 30, borderRadius: '50%',
-            background: 'rgba(61,123,255,.15)',
-            border: '1.5px solid rgba(61,123,255,.3)',
+            background: 'rgba(61,123,255,.15)', border: '1.5px solid rgba(61,123,255,.3)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '.62rem', fontWeight: 800, color: '#3D7BFF',
-            letterSpacing: '.02em',
+            fontSize: '.62rem', fontWeight: 800, color: '#3D7BFF', letterSpacing: '.02em', flexShrink: 0,
           }}>MK</div>
         </div>
 
-      </header>
+      </aside>
 
       {/* ── PAGE CONTENT ───────────────────────────────────────────────── */}
-      <main style={{ flex: 1, overflowY: 'auto', padding: '28px 32px 48px' }}>
+      <main style={{ flex: 1, overflowY: 'auto', padding: '28px 32px 48px', minWidth: 0 }}>
         {children}
       </main>
 
