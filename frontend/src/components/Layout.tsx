@@ -87,7 +87,7 @@ export default function Layout({ children }: LayoutProps) {
 
         {/* Logo */}
         <Link to="/dashboard" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0, marginRight: 28 }}>
-          <img src="/logo-nova.svg" alt="Nova" style={{ height: 28, width: 'auto' }} />
+          <img src="/logo-nova.svg" alt="Nova" style={{ height: 20, width: 'auto' }} />
           <div style={{
             fontFamily: 'Sora, sans-serif', fontWeight: 800, fontSize: '.95rem',
             color: 'var(--nova-text)', letterSpacing: '.06em', lineHeight: 1,
