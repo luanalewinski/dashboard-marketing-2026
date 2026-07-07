@@ -362,7 +362,7 @@ export default function TabChecklist({ edicao, cuTasks, cuLoading, onReload }: P
           <select
             value={novoItemCat}
             onChange={e => setNovoItemCat(e.target.value)}
-            style={{ ...inputStyle, width: 'auto', paddingLeft: 10, paddingRight: 10, flexShrink: 0, fontSize: '.72rem', cursor: 'pointer' }}
+            style={{ ...inputStyle, width: 'auto', paddingLeft: 10, paddingRight: 10, flexShrink: 0, fontSize: '.72rem', cursor: 'pointer', colorScheme: 'dark' } as React.CSSProperties}
           >
             {TEAMS.map(t => <option key={t.key} value={t.key}>{t.label}</option>)}
           </select>

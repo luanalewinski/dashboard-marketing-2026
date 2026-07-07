@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../../lib/supabase';
 import { getSpaceMembers, CUMember, CU } from '../../../lib/clickup';
 import { EventoItem, MODULE_CFG, ITEM_STATUSES } from '../types';
-import { Skel, BtnPrimary, BtnGhost, inputStyle, Modal, ModalField } from '../ui';
+import { Skel, BtnPrimary, BtnGhost, inputStyle, Modal, ModalField, DarkSelect } from '../ui';
 
 type ModuleKey = 'design' | 'social' | 'video';
 
@@ -206,8 +206,8 @@ export default function TabItemBoard({ module, edicaoId }: Props) {
                           color: statusCfg[item.status]?.color ?? '#EEF2F8',
                           background: statusCfg[item.status]?.bg ?? 'rgba(255,255,255,.06)',
                           border: `1px solid ${statusCfg[item.status]?.color ?? '#EEF2F8'}30`,
-                          cursor: 'pointer', flexShrink: 0, outline: 'none',
-                        }}
+                          cursor: 'pointer', flexShrink: 0, outline: 'none', colorScheme: 'dark',
+                        } as React.CSSProperties}
                       >
                         {ITEM_STATUSES.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
                       </select>
@@ -257,24 +257,17 @@ export default function TabItemBoard({ module, edicaoId }: Props) {
               autoFocus onKeyDown={e => e.key === 'Enter' && criarItem()} />
           </ModalField>
           <ModalField label="Status">
-            <select style={inputStyle} value={novoStatus} onChange={e => setNovoStatus(e.target.value)}>
-              {ITEM_STATUSES.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
-            </select>
+            <DarkSelect value={novoStatus} onChange={setNovoStatus}
+              options={ITEM_STATUSES.map(s => ({ value: s.key, label: s.label }))} />
           </ModalField>
           <ModalField label="Prioridade">
-            <select style={inputStyle} value={novoPrioridade} onChange={e => setNovoPrior(e.target.value)}>
-              <option value="alta">Alta</option>
-              <option value="media">Média</option>
-              <option value="baixa">Baixa</option>
-            </select>
+            <DarkSelect value={novoPrioridade} onChange={setNovoPrior}
+              options={[{ value: 'alta', label: 'Alta' }, { value: 'media', label: 'Média' }, { value: 'baixa', label: 'Baixa' }]} />
           </ModalField>
           <ModalField label="Responsável">
-            <select style={inputStyle} value={novoResp} onChange={e => setNovoResp(e.target.value)}>
-              <option value="">— Sem responsável —</option>
-              {members.map(m => (
-                <option key={m.id} value={m.username}>{m.username}</option>
-              ))}
-            </select>
+            <DarkSelect value={novoResp} onChange={setNovoResp}
+              placeholder="— Sem responsável —"
+              options={members.map(m => ({ value: m.username, label: m.username }))} />
           </ModalField>
           <ModalField label="Vencimento">
             <input className="ev-input" style={inputStyle} type="date" value={novoVenc}

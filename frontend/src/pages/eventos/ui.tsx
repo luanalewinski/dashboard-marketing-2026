@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 
 export const inputStyle: React.CSSProperties = {
   background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.08)',
@@ -87,6 +87,95 @@ export function Modal({ children, onClose, title }: { children: React.ReactNode;
         </div>
         {children}
       </div>
+    </div>
+  );
+}
+
+export function DarkSelect({ value, onChange, options, placeholder }: {
+  value: string;
+  onChange: (v: string) => void;
+  options: { value: string; label: string }[];
+  placeholder?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function onOutside(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener('mousedown', onOutside);
+    return () => document.removeEventListener('mousedown', onOutside);
+  }, []);
+
+  const selected = options.find(o => o.value === value);
+
+  return (
+    <div ref={ref} style={{ position: 'relative', width: '100%' }}>
+      <button
+        type="button"
+        onClick={() => setOpen(v => !v)}
+        style={{
+          ...inputStyle,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          cursor: 'pointer', textAlign: 'left',
+          border: open ? '1px solid rgba(61,123,255,.5)' : '1px solid rgba(255,255,255,.08)',
+        }}
+      >
+        <span style={{ color: selected ? '#EEF2F8' : 'rgba(238,242,248,.3)' }}>
+          {selected ? selected.label : placeholder ?? '— Selecione —'}
+        </span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+          strokeLinecap="round" strokeLinejoin="round" width="13" height="13"
+          style={{ color: 'rgba(238,242,248,.3)', flexShrink: 0, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}>
+          <polyline points="6 9 12 15 18 9"/>
+        </svg>
+      </button>
+
+      {open && (
+        <div style={{
+          position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 400,
+          background: '#0E1120', border: '1px solid rgba(255,255,255,.1)',
+          borderRadius: 12, overflow: 'hidden',
+          boxShadow: '0 16px 48px rgba(0,0,0,.7)',
+          maxHeight: 260, overflowY: 'auto',
+        }}>
+          {placeholder && (
+            <div
+              onClick={() => { onChange(''); setOpen(false); }}
+              style={{
+                padding: '9px 14px', fontSize: '.78rem', color: 'rgba(238,242,248,.3)',
+                cursor: 'pointer', borderBottom: '1px solid rgba(255,255,255,.05)',
+              }}
+            >
+              {placeholder}
+            </div>
+          )}
+          {options.map(opt => (
+            <div
+              key={opt.value}
+              onClick={() => { onChange(opt.value); setOpen(false); }}
+              style={{
+                padding: '9px 14px', fontSize: '.78rem', fontFamily: 'inherit',
+                color: opt.value === value ? '#3D7BFF' : '#EEF2F8',
+                background: opt.value === value ? 'rgba(61,123,255,.12)' : 'transparent',
+                cursor: 'pointer', transition: 'background .1s',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              }}
+              onMouseEnter={e => { if (opt.value !== value) (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,.05)'; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = opt.value === value ? 'rgba(61,123,255,.12)' : 'transparent'; }}
+            >
+              {opt.label}
+              {opt.value === value && (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
+                  strokeLinecap="round" strokeLinejoin="round" width="12" height="12">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

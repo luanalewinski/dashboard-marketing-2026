@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../../lib/supabase';
 import { EdicaoFornecedor, Fornecedor } from '../types';
-import { Skel, BtnPrimary, BtnGhost, inputStyle, Modal, ModalField } from '../ui';
+import { Skel, BtnPrimary, BtnGhost, inputStyle, Modal, ModalField, DarkSelect } from '../ui';
 
 interface Props {
   edicaoId: string;
@@ -212,12 +212,12 @@ export default function TabFornecedores({ edicaoId }: Props) {
       {showAdd && (
         <Modal onClose={() => setShowAdd(false)} title="Vincular Fornecedor">
           <ModalField label="Fornecedor *">
-            <select style={inputStyle} value={selectedId} onChange={e => setSelectedId(e.target.value)} autoFocus>
-              <option value="">— Selecione —</option>
-              {unlinkedSupps.map(s => (
-                <option key={s.id} value={s.id}>{s.name}{s.category ? ` · ${s.category}` : ''}</option>
-              ))}
-            </select>
+            <DarkSelect
+              value={selectedId}
+              onChange={setSelectedId}
+              placeholder="— Selecione —"
+              options={unlinkedSupps.map(s => ({ value: s.id, label: s.name + (s.category ? ` · ${s.category}` : '') }))}
+            />
           </ModalField>
           <ModalField label="Observações para esta edição">
             <textarea style={{ ...inputStyle, resize: 'vertical', minHeight: 60 }}
@@ -242,9 +242,11 @@ export default function TabFornecedores({ edicaoId }: Props) {
               autoFocus onKeyDown={e => e.key === 'Enter' && criarELinkar()} />
           </ModalField>
           <ModalField label="Categoria">
-            <select style={inputStyle} value={newCat} onChange={e => setNewCat(e.target.value)}>
-              {FORNECEDOR_CATS.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
+            <DarkSelect
+              value={newCat}
+              onChange={setNewCat}
+              options={FORNECEDOR_CATS.map(c => ({ value: c, label: c }))}
+            />
           </ModalField>
           <ModalField label="Contato">
             <input className="ev-input" style={inputStyle} value={newContact}

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase';
 import { CUTask } from '../../../lib/clickup';
 import { Evento, Edicao, TEAMS, STATUS_CFG, LINK_CFG, LINK_TYPES, MODULE_CFG, WorkTab, pct } from '../types';
-import { Skel, BtnGhost, Badge, inputStyle, Modal, ModalField } from '../ui';
+import { Skel, BtnGhost, Badge, inputStyle, Modal, ModalField, DarkSelect } from '../ui';
 
 interface Props {
   evento: Evento;
@@ -290,9 +290,11 @@ export default function TabVisaoGeral({ evento, edicao, cuTasks, onReload, onNav
       {showNovoLink && (
         <Modal onClose={() => setShowNovoLink(false)} title="Adicionar Link">
           <ModalField label="Tipo">
-            <select style={inputStyle} value={novoLinkType} onChange={e => setNovoLinkType(e.target.value)}>
-              {LINK_TYPES.map(t => <option key={t} value={t}>{LINK_CFG[t]?.label ?? t}</option>)}
-            </select>
+            <DarkSelect
+              value={novoLinkType}
+              onChange={setNovoLinkType}
+              options={LINK_TYPES.map(t => ({ value: t, label: LINK_CFG[t]?.label ?? t }))}
+            />
           </ModalField>
           <ModalField label="Label *">
             <input className="ev-input" style={inputStyle} value={novoLinkLabel}
