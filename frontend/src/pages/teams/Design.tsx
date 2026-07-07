@@ -255,19 +255,9 @@ export default function Design() {
   const [tasksLoaded, setTasksLoaded] = useState(false);
 
   return (
-    <TeamCommandCenter
-      config={{
-        name: 'Time Design',
-        subtitle: 'Produção visual e peças criativas · ao vivo via ClickUp',
-        color: '#FBBF24',
-        listId: CU.LIST_SOCIAL,
-        listUrl: `https://app.clickup.com/36941541/v/l/${CU.LIST_SOCIAL}`,
-        icon: TEAM_ICON,
-      }}
-      onTasksLoaded={t => { setTeamTasks(t); setTasksLoaded(true); }}
-    >
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       {/* ── DESIGNER BOARDS ─────────────────────────────────────────────────── */}
-      <div style={{ marginTop: 14 }}>
+      <div>
         {/* Section header */}
         <div style={{
           display: 'flex', alignItems: 'center', gap: 12,
@@ -322,6 +312,19 @@ export default function Design() {
           ))}
         </div>
       </div>
-    </TeamCommandCenter>
+
+      {/* ── TEAM COMMAND CENTER ──────────────────────────────────────────────── */}
+      <TeamCommandCenter
+        config={{
+          name: 'Time Design',
+          subtitle: 'Produção visual e peças criativas · ao vivo via ClickUp',
+          color: '#FBBF24',
+          listId: CU.LIST_SOCIAL,
+          listUrl: `https://app.clickup.com/36941541/v/l/${CU.LIST_SOCIAL}`,
+          icon: TEAM_ICON,
+        }}
+        onTasksLoaded={t => { setTeamTasks(t); setTasksLoaded(true); }}
+      />
+    </div>
   );
 }
