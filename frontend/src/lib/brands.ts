@@ -12,11 +12,11 @@ export interface BrandConfig {
   description: string;
   handle: string;      // @handle do Instagram
 
+  // Borda de identidade nos boards — null = borda padrão do DS
+  // Formato: [cor1, cor2] em hex. brandCardStyle() aplica como gradiente 135deg, op. 18%.
+  borderGradient: [string, string] | null;
+
   // Estratégia de filtro de tarefas no ClickUp
-  // 'keyword' → task.name.toLowerCase().includes(filterValue)
-  // 'tag'     → task.tags[] inclui filterValue
-  // 'list'    → buscar de listId específico
-  // 'field'   → custom_field "Marca" === filterValue
   filterStrategy: 'keyword' | 'tag' | 'list' | 'field';
   filterValue: string;
 }
@@ -29,6 +29,7 @@ export const BRANDS: BrandConfig[] = [
     color2: 'rgba(61,123,255,.12)',
     description: 'Nova Promotora · marketing e comunicação institucional',
     handle: '@nova.promotora',
+    borderGradient: null,
     filterStrategy: 'keyword',
     filterValue: 'nova',
   },
@@ -39,6 +40,7 @@ export const BRANDS: BrandConfig[] = [
     color2: 'rgba(74,222,128,.12)',
     description: 'Plataforma de vendas · digital e presencial',
     handle: '@vendeai.oficial',
+    borderGradient: ['#A000FF', '#00D9FF'],
     filterStrategy: 'keyword',
     filterValue: 'vendeai',
   },
@@ -49,6 +51,7 @@ export const BRANDS: BrandConfig[] = [
     color2: 'rgba(251,191,36,.12)',
     description: 'Crédito pessoal · soluções financeiras rápidas',
     handle: '@pronto.credito',
+    borderGradient: ['#FD6100', '#D12B01'],
     filterStrategy: 'keyword',
     filterValue: 'pronto',
   },
@@ -60,18 +63,26 @@ export function getBrandConfig(slug: string): BrandConfig | undefined {
 
 // ── Borda de identidade por marca ─────────────────────────────────────────────
 // Técnica: background padding-box (fundo interno) + border-box (gradiente na borda).
-// Apenas VENDEAÍ recebe borda com gradiente lilás → azul.
-// NOVA e PRONTO mantêm a borda padrão do Design System.
+// Config-driven: brand.borderGradient define as cores; null = borda padrão do DS.
+// Opacidade fixa em 18% — sutil o suficiente para não competir com os dados.
 export function brandCardStyle(
   brand: BrandConfig,
   bg: string = '#0C1425',
 ): React.CSSProperties {
-  if (brand.slug !== 'vendeai') {
+  if (!brand.borderGradient) {
     return { background: bg, border: '1px solid rgba(255,255,255,.05)' };
   }
+  const [c1, c2] = brand.borderGradient;
+  // Converte hex para rgb para controle de opacidade
+  const toRgba = (hex: string, op: number) => {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return `rgba(${r},${g},${b},${op})`;
+  };
   return {
     background: `linear-gradient(${bg}, ${bg}) padding-box,
-                 linear-gradient(135deg, rgba(160,0,255,.18) 0%, rgba(0,217,255,.18) 100%) border-box`,
+                 linear-gradient(135deg, ${toRgba(c1, 0.18)} 0%, ${toRgba(c2, 0.18)} 100%) border-box`,
     border: '1px solid transparent',
   };
 }
