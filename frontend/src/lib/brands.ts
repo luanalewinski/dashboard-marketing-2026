@@ -13,8 +13,9 @@ export interface BrandConfig {
   handle: string;      // @handle do Instagram
 
   // Borda de identidade nos boards — null = borda padrão do DS
-  // Formato: [cor1, cor2] em hex. brandCardStyle() aplica como gradiente 135deg, op. 18%.
+  // Formato: [cor1, cor2] em hex. borderOpacity controla a visibilidade (0-1).
   borderGradient: [string, string] | null;
+  borderOpacity: number;
 
   // Estratégia de filtro de tarefas no ClickUp
   filterStrategy: 'keyword' | 'tag' | 'list' | 'field';
@@ -30,6 +31,7 @@ export const BRANDS: BrandConfig[] = [
     description: 'Nova Promotora · marketing e comunicação institucional',
     handle: '@nova.promotora',
     borderGradient: null,
+    borderOpacity: 0,
     filterStrategy: 'keyword',
     filterValue: 'nova',
   },
@@ -41,6 +43,7 @@ export const BRANDS: BrandConfig[] = [
     description: 'Plataforma de vendas · digital e presencial',
     handle: '@vendeai.oficial',
     borderGradient: ['#A000FF', '#00D9FF'],
+    borderOpacity: 0.55, // lilás precisa de opacidade maior para aparecer no fundo escuro
     filterStrategy: 'keyword',
     filterValue: 'vendeai',
   },
@@ -52,6 +55,7 @@ export const BRANDS: BrandConfig[] = [
     description: 'Crédito pessoal · soluções financeiras rápidas',
     handle: '@pronto.credito',
     borderGradient: ['#FD6100', '#D12B01'],
+    borderOpacity: 0.40, // laranja aparece bem com opacidade menor
     filterStrategy: 'keyword',
     filterValue: 'pronto',
   },
@@ -82,7 +86,7 @@ export function brandCardStyle(
   };
   return {
     background: `linear-gradient(${bg}, ${bg}) padding-box,
-                 linear-gradient(135deg, ${toRgba(c1, 0.18)} 0%, ${toRgba(c2, 0.18)} 100%) border-box`,
+                 linear-gradient(135deg, ${toRgba(c1, brand.borderOpacity)} 0%, ${toRgba(c2, brand.borderOpacity)} 100%) border-box`,
     border: '1px solid transparent',
   };
 }
