@@ -2,6 +2,7 @@ import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from 'recharts';
 import type { BrandConfig } from '../../lib/brands';
+import { brandCardStyle } from '../../lib/brands';
 import { getMockBrandTasks, type BrandTask } from '../../lib/brandData';
 
 // ── Status config ──────────────────────────────────────────────────────────────
@@ -82,8 +83,9 @@ export default function BrandOverview({ brand }: Props) {
           { label: 'Alta prioridade',   val: highPri, color: '#FF6B6B',              bg: 'rgba(255,107,107,.05)', border: 'rgba(255,107,107,.14)' },
         ].map(k => (
           <div key={k.label} style={{
-            background: `#0C0F1C`, borderRadius: 20, padding: '20px 22px',
-            border: `1px solid ${k.border}`, position: 'relative', overflow: 'hidden',
+            ...brandCardStyle(brand, '#0C0F1C'),
+            borderRadius: 20, padding: '20px 22px',
+            position: 'relative', overflow: 'hidden',
           }}>
             <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg, ${k.color}, transparent)`, borderRadius: '20px 20px 0 0', opacity: .7 }} />
             <div style={{ fontSize: '.6rem', fontWeight: 700, color: 'rgba(238,242,248,.28)', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 10 }}>{k.label}</div>
@@ -94,8 +96,8 @@ export default function BrandOverview({ brand }: Props) {
 
       {/* ── PROGRESS + ALERTS ─────────────────────────────────────────── */}
       <div style={{
-        background: '#0C1425', borderRadius: 22, padding: '24px 28px',
-        border: '1px solid rgba(255,255,255,.05)',
+        ...brandCardStyle(brand),
+        borderRadius: 22, padding: '24px 28px',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
           <div>
@@ -135,7 +137,7 @@ export default function BrandOverview({ brand }: Props) {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 240px', gap: 12 }}>
 
         {/* Gráfico de entregas */}
-        <div style={{ background: '#0C1425', borderRadius: 22, padding: '24px 28px', border: '1px solid rgba(255,255,255,.05)' }}>
+        <div style={{ ...brandCardStyle(brand), borderRadius: 22, padding: '24px 28px' }}>
           <div style={{ fontSize: '.65rem', fontWeight: 700, color: 'rgba(238,242,248,.28)', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 4 }}>
             Entregas recentes
           </div>
@@ -162,7 +164,7 @@ export default function BrandOverview({ brand }: Props) {
         </div>
 
         {/* Responsáveis */}
-        <div style={{ background: '#0C1425', borderRadius: 22, padding: '24px 22px', border: '1px solid rgba(255,255,255,.05)' }}>
+        <div style={{ ...brandCardStyle(brand), borderRadius: 22, padding: '24px 22px' }}>
           <div style={{ fontSize: '.65rem', fontWeight: 700, color: 'rgba(238,242,248,.28)', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 16 }}>
             Responsáveis ativos
           </div>
@@ -200,7 +202,7 @@ export default function BrandOverview({ brand }: Props) {
       </div>
 
       {/* ── TAREFAS ABERTAS ──────────────────────────────────────────────── */}
-      <div style={{ background: '#0C1425', borderRadius: 22, padding: '24px 28px', border: '1px solid rgba(255,255,255,.05)' }}>
+      <div style={{ ...brandCardStyle(brand), borderRadius: 22, padding: '24px 28px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
           <div style={{ fontSize: '.65rem', fontWeight: 700, color: 'rgba(238,242,248,.28)', textTransform: 'uppercase', letterSpacing: '.1em' }}>
             Tarefas abertas

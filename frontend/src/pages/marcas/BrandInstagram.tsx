@@ -4,6 +4,7 @@ import {
   XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from 'recharts';
 import type { BrandConfig } from '../../lib/brands';
+import { brandCardStyle } from '../../lib/brands';
 import {
   BRAND_IG_DATA, BRAND_GROWTH, HEATMAP_DATA,
   IG_DAYS, IG_HOURS, DEMO_GENERO, DEMO_IDADE,
@@ -113,7 +114,7 @@ export default function BrandInstagram({ brand }: Props) {
       <div style={{ display: 'grid', gridTemplateColumns: '1.1fr .9fr', gap: 12 }}>
 
         {/* Heatmap */}
-        <div style={{ background: '#0C1425', borderRadius: 22, padding: '24px 28px', border: '1px solid rgba(255,255,255,.05)' }}>
+        <div style={{ ...brandCardStyle(brand), borderRadius: 22, padding: '24px 28px' }}>
           <div style={{ marginBottom: 20 }}>
             <div style={{ fontSize: '.65rem', fontWeight: 700, color: 'rgba(238,242,248,.28)', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 4 }}>Horários mais ativos</div>
             <div style={{ fontSize: '1rem', fontWeight: 700, color: '#EEF2F8' }}>Atividade da audiência por dia e hora</div>
@@ -158,7 +159,7 @@ export default function BrandInstagram({ brand }: Props) {
         </div>
 
         {/* Crescimento */}
-        <div style={{ background: '#0C1425', borderRadius: 22, padding: '24px 28px', border: '1px solid rgba(255,255,255,.05)' }}>
+        <div style={{ ...brandCardStyle(brand), borderRadius: 22, padding: '24px 28px' }}>
           <div style={{ marginBottom: 20 }}>
             <div style={{ fontSize: '.65rem', fontWeight: 700, color: 'rgba(238,242,248,.28)', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 4 }}>Crescimento de seguidores</div>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
@@ -185,7 +186,7 @@ export default function BrandInstagram({ brand }: Props) {
       </div>
 
       {/* ── ALCANCE POR DIA ────────────────────────────────────────────── */}
-      <div style={{ background: '#0C1425', borderRadius: 22, padding: '24px 28px', border: '1px solid rgba(255,255,255,.05)' }}>
+      <div style={{ ...brandCardStyle(brand), borderRadius: 22, padding: '24px 28px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
           <div>
             <div style={{ fontSize: '.65rem', fontWeight: 700, color: 'rgba(238,242,248,.28)', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 4 }}>Alcance por dia</div>
@@ -229,7 +230,7 @@ export default function BrandInstagram({ brand }: Props) {
       </div>
 
       {/* ── DEMOGRAFIA ─────────────────────────────────────────────────── */}
-      <div style={{ background: '#0C1425', borderRadius: 22, padding: '24px 28px', border: '1px solid rgba(255,255,255,.05)' }}>
+      <div style={{ ...brandCardStyle(brand), borderRadius: 22, padding: '24px 28px' }}>
         <div style={{ fontSize: '.65rem', fontWeight: 700, color: 'rgba(238,242,248,.28)', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 20 }}>Perfil da audiência</div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32 }}>
           <div>

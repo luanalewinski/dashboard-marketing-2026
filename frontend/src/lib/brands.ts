@@ -57,3 +57,21 @@ export const BRANDS: BrandConfig[] = [
 export function getBrandConfig(slug: string): BrandConfig | undefined {
   return BRANDS.find(b => b.slug === slug);
 }
+
+// ── Borda de identidade por marca ─────────────────────────────────────────────
+// Técnica: background padding-box (fundo interno) + border-box (gradiente na borda).
+// Apenas VENDEAÍ recebe borda com gradiente lilás → azul.
+// NOVA e PRONTO mantêm a borda padrão do Design System.
+export function brandCardStyle(
+  brand: BrandConfig,
+  bg: string = '#0C1425',
+): React.CSSProperties {
+  if (brand.slug !== 'vendeai') {
+    return { background: bg, border: '1px solid rgba(255,255,255,.05)' };
+  }
+  return {
+    background: `linear-gradient(${bg}, ${bg}) padding-box,
+                 linear-gradient(135deg, rgba(160,0,255,.18) 0%, rgba(0,217,255,.18) 100%) border-box`,
+    border: '1px solid transparent',
+  };
+}
