@@ -4,10 +4,10 @@ import { Link, useLocation } from 'react-router-dom';
 const NAV_GROUPS = [
   {
     items: [
-      { label: 'Dashboard',     to: '/dashboard', exact: true,  icon: 'grid' },
-      { label: 'Nova Campanha', to: '/',          exact: true,  icon: 'plus' },
-      { label: 'Sprints',       to: '/sprints',                 icon: 'zap' },
-      { label: 'Eventos',       to: '/eventos',                 icon: 'calendar' },
+      { label: 'Dashboard',     to: '/marcas/nova', activePrefix: '/marcas', icon: 'grid' },
+      { label: 'Nova Campanha', to: '/',             exact: true,             icon: 'plus' },
+      { label: 'Sprints',       to: '/sprints',                               icon: 'zap' },
+      { label: 'Eventos',       to: '/eventos',                               icon: 'calendar' },
     ],
   },
   {
@@ -22,8 +22,7 @@ const NAV_GROUPS = [
   {
     label: 'Canais',
     items: [
-      { label: 'Marcas',    to: '/marcas/nova', activePrefix: '/marcas', color: '#3D7BFF', icon: 'brand' },
-      { label: 'Instagram', to: '/instagram',   color: '#E1306C', icon: 'instagram' },
+      { label: 'Instagram', to: '/instagram', color: '#E1306C', icon: 'instagram' },
     ],
   },
 ];
