@@ -20,17 +20,10 @@ const NAV_GROUPS = [
     ],
   },
   {
-    label: 'Marcas',
-    items: [
-      { label: 'NOVA',    to: '/marcas/nova',    color: '#3D7BFF', icon: 'brand' },
-      { label: 'VENDEAÍ', to: '/marcas/vendeai', color: '#4ADE80', icon: 'brand' },
-      { label: 'PRONTO',  to: '/marcas/pronto',  color: '#FBBF24', icon: 'brand' },
-    ],
-  },
-  {
     label: 'Canais',
     items: [
-      { label: 'Instagram', to: '/instagram', color: '#E1306C', icon: 'instagram' },
+      { label: 'Marcas',    to: '/marcas/nova', activePrefix: '/marcas', color: '#3D7BFF', icon: 'brand' },
+      { label: 'Instagram', to: '/instagram',   color: '#E1306C', icon: 'instagram' },
     ],
   },
 ];
@@ -146,7 +139,9 @@ export default function Layout({ children }: LayoutProps) {
                 </div>
               )}
               {group.items.map(item => {
-                const active = isActive(item.to, (item as any).exact);
+                const active = (item as any).activePrefix
+                  ? location.pathname.startsWith((item as any).activePrefix)
+                  : isActive(item.to, (item as any).exact);
                 const color = (item as any).color ?? 'var(--nova-blue)';
                 return (
                   <Link
