@@ -20,6 +20,14 @@ const NAV_GROUPS = [
     ],
   },
   {
+    label: 'Marcas',
+    items: [
+      { label: 'NOVA',    to: '/marcas/nova',    color: '#3D7BFF', icon: 'brand' },
+      { label: 'VENDEAÍ', to: '/marcas/vendeai', color: '#4ADE80', icon: 'brand' },
+      { label: 'PRONTO',  to: '/marcas/pronto',  color: '#FBBF24', icon: 'brand' },
+    ],
+  },
+  {
     label: 'Canais',
     items: [
       { label: 'Instagram', to: '/instagram', color: '#E1306C', icon: 'instagram' },
@@ -39,6 +47,7 @@ function NavIcon({ name, size = 15 }: { name: string; size?: number }) {
   if (name === 'headphones') return <svg {...props}><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>;
   if (name === 'pen-tool')   return <svg {...props}><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg>;
   if (name === 'instagram')  return <svg {...props}><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>;
+  if (name === 'brand')      return <svg {...props}><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>;
   return null;
 }
 

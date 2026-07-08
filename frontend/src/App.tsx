@@ -12,6 +12,7 @@ import Atendimento from './pages/teams/Atendimento';
 import Design from './pages/teams/Design';
 import EventosList from './pages/eventos/EventosList';
 import Instagram from './pages/Instagram';
+import BrandWorkspace from './pages/marcas/BrandWorkspace';
 
 export default function App() {
   return (
@@ -32,6 +33,8 @@ export default function App() {
           <Route path="/eventos" element={<EventosList />} />
           <Route path="/eventos/:eventId" element={<EventosList />} />
           <Route path="/eventos/:eventId/:year" element={<EventosList />} />
+          <Route path="/marcas/:brand/*" element={<BrandWorkspace />} />
+          <Route path="/marcas" element={<BrandWorkspace />} />
         </Routes>
       </Layout>
     </BrowserRouter>
