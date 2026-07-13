@@ -79,36 +79,8 @@ export default function Design() {
         ))}
       </div>
 
-      {/* Team ranking + chart */}
-      <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: 12 }}>
-
-        {/* Ranking */}
-        <div style={{ background: '#0C1425', borderRadius: 22, padding: '24px 24px', border: '1px solid rgba(255,255,255,.05)' }}>
-          <div style={{ fontSize: '.65rem', fontWeight: 700, color: 'rgba(238,242,248,.28)', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 20 }}>Ranking do time</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {TEAM.sort((a, b) => (b.comIA / b.total) - (a.comIA / a.total)).map((m, i) => {
-              const pct = Math.round(m.comIA / m.total * 100);
-              return (
-                <div key={m.name}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-                    <span style={{ fontSize: '.75rem', fontWeight: 800, color: i === 0 ? '#FBBF24' : 'rgba(238,242,248,.3)', width: 16 }}>#{i + 1}</span>
-                    <div style={{ width: 36, height: 36, borderRadius: '50%', background: `${m.color}18`, border: `1.5px solid ${m.color}40`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '.65rem', fontWeight: 800, color: m.color, flexShrink: 0 }}>{m.photo}</div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: '.8rem', fontWeight: 700, color: '#EEF2F8', marginBottom: 1 }}>{m.name}</div>
-                      <div style={{ fontSize: '.65rem', color: 'rgba(238,242,248,.35)' }}>{m.total} materiais · {m.comIA} com IA</div>
-                    </div>
-                    <span style={{ fontSize: '1.1rem', fontWeight: 800, color: m.color }}>{pct}%</span>
-                  </div>
-                  <div style={{ height: 4, borderRadius: 3, background: 'rgba(255,255,255,.06)', overflow: 'hidden', marginLeft: 26 }}>
-                    <div style={{ width: `${pct}%`, height: '100%', background: m.color, borderRadius: 3, opacity: .8 }} />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Monthly chart */}
+      {/* Monthly chart */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 12 }}>
         <div style={{ background: '#0C1425', borderRadius: 22, padding: '24px 28px', border: '1px solid rgba(255,255,255,.05)' }}>
           <div style={{ fontSize: '.65rem', fontWeight: 700, color: 'rgba(238,242,248,.28)', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 4 }}>Evolução mensal</div>
           <div style={{ fontSize: '1rem', fontWeight: 700, color: '#EEF2F8', marginBottom: 20 }}>Uso da IA por mês · total vs. com IA</div>
@@ -127,6 +99,7 @@ export default function Design() {
       </div>
 
       {/* Tools + Savings */}
+
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: 12 }}>
 
         {/* Tools */}
