@@ -34,61 +34,68 @@ const HIGH_PRI_TASKS = [
   { title: 'Aprovação identidade Convenção 2026',        icon: '↑' },
 ];
 
+// ─── Design tokens (enterprise refinement) ────────────────────────────────────
+const T = {
+  surface:  '#0B0D14',          // card base
+  surfaceEl:'#0F1219',          // slightly elevated hero
+  border:   'rgba(255,255,255,.07)',
+  text1:    '#F1F5F9',          // primary — big numbers, titles
+  text2:    'rgba(241,245,249,.42)', // secondary — body
+  text3:    'rgba(241,245,249,.22)', // tertiary — uppercase labels
+  danger:   'rgba(220,68,68,.85)',
+  dangerBg: 'rgba(220,68,68,.07)',
+  dangerBorder: 'rgba(220,68,68,.14)',
+  accent:   '#3D7BFF',          // used only on chart line + 1 interactive element
+};
+
 function SparklineSVG({ done, total }: { done: number; total: number }) {
-  // simple rising sparkline path
-  const pts = [
-    [0, 90], [50, 78], [110, 66], [170, 58], [230, 44], [290, 35], [340, 22], [390, 10],
-  ];
-  const d = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p[0]},${p[1]}`).join(' ');
-  const area = d + ` L${pts[pts.length - 1][0]},100 L0,100 Z`;
-  const pct = Math.round(done / total * 100);
+  const pts = [[0,90],[50,78],[110,66],[170,58],[230,44],[290,35],[340,22],[390,10]];
+  const d    = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p[0]},${p[1]}`).join(' ');
+  const area = d + ` L${pts[pts.length-1][0]},100 L0,100 Z`;
+  const pct  = Math.round(done / total * 100);
   return (
     <div style={{ position: 'relative' }}>
-      <svg viewBox="0 0 390 100" style={{ width: '100%', height: 64, display: 'block' }}>
+      <svg viewBox="0 0 390 100" style={{ width: '100%', height: 60, display: 'block' }}>
         <defs>
           <linearGradient id="spkGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#3D7BFF" stopOpacity={0.25} />
-            <stop offset="100%" stopColor="#3D7BFF" stopOpacity={0} />
+            <stop offset="0%" stopColor="#fff" stopOpacity={0.07} />
+            <stop offset="100%" stopColor="#fff" stopOpacity={0} />
           </linearGradient>
         </defs>
         <path d={area} fill="url(#spkGrad)" />
-        <path d={d} fill="none" stroke="#3D7BFF" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+        <path d={d} fill="none" stroke="rgba(255,255,255,.3)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
-      <div style={{ position: 'absolute', top: 4, right: 0, background: 'rgba(74,222,128,.15)', border: '1px solid rgba(74,222,128,.3)', borderRadius: 20, padding: '3px 10px', fontSize: '.68rem', fontWeight: 700, color: '#4ADE80' }}>
-        ↑ {pct}% concluído
+      <div style={{ position: 'absolute', top: 2, right: 0, background: 'rgba(255,255,255,.06)', border: T.border, borderRadius: 6, padding: '3px 9px', fontSize: '.65rem', fontWeight: 600, color: T.text2 }}>
+        {pct}% concluído
       </div>
     </div>
   );
 }
 
 function DonutChart({ pct, done, aFazer, emAndamento }: { pct: number; done: number; aFazer: number; emAndamento: number }) {
-  const r = 42, cx = 52, cy = 52, stroke = 7;
-  const circ = 2 * Math.PI * r;
+  const r = 40, cx = 50, cy = 50, sw = 6;
+  const circ     = 2 * Math.PI * r;
   const dashDone = circ * pct / 100;
-  const dashIP   = circ * (emAndamento / (done + aFazer + emAndamento));
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-      <svg width="104" height="104" viewBox="0 0 104 104" style={{ flexShrink: 0 }}>
-        <circle cx={cx} cy={cy} r={r} fill="none" stroke="rgba(255,255,255,.06)" strokeWidth={stroke} />
-        <circle cx={cx} cy={cy} r={r} fill="none" stroke="#3D7BFF" strokeWidth={stroke}
-          strokeDasharray={`${dashIP} ${circ}`} strokeLinecap="round"
-          transform={`rotate(-90 ${cx} ${cy})`} opacity={0.5} />
-        <circle cx={cx} cy={cy} r={r} fill="none" stroke="#4ADE80" strokeWidth={stroke}
-          strokeDasharray={`${dashDone} ${circ}`} strokeLinecap="round"
+    <div style={{ display: 'flex', alignItems: 'center', gap: 22 }}>
+      <svg width="100" height="100" viewBox="0 0 100 100" style={{ flexShrink: 0 }}>
+        <circle cx={cx} cy={cy} r={r} fill="none" stroke="rgba(255,255,255,.05)" strokeWidth={sw} />
+        <circle cx={cx} cy={cy} r={r} fill="none" stroke="rgba(255,255,255,.55)" strokeWidth={sw}
+          strokeDasharray={`${dashDone} ${circ}`} strokeLinecap="butt"
           transform={`rotate(-90 ${cx} ${cy})`} />
-        <text x={cx} y={cy - 4} textAnchor="middle" fill="#EEF2F8" fontSize="13" fontWeight="800">{pct}%</text>
-        <text x={cx} y={cy + 11} textAnchor="middle" fill="rgba(238,242,248,.35)" fontSize="8" fontWeight="600">DONE</text>
+        <text x={cx} y={cy - 3} textAnchor="middle" fill={T.text1} fontSize="14" fontWeight="700">{pct}%</text>
+        <text x={cx} y={cy + 11} textAnchor="middle" fill={T.text3} fontSize="7.5" fontWeight="500" letterSpacing="1">DONE</text>
       </svg>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {[
-          { dot: '#4ADE80', label: 'concluído',    val: done },
-          { dot: 'rgba(238,242,248,.25)', label: 'a fazer', val: aFazer },
-          { dot: '#3D7BFF', label: 'em andamento', val: emAndamento },
+          { label: 'concluído',    val: done,       opacity: '.65' },
+          { label: 'a fazer',      val: aFazer,     opacity: '.28' },
+          { label: 'em andamento', val: emAndamento, opacity: '.45' },
         ].map(row => (
-          <div key={row.label} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{ width: 7, height: 7, borderRadius: '50%', background: row.dot, flexShrink: 0 }} />
-            <span style={{ fontSize: '.68rem', color: 'rgba(238,242,248,.5)', flex: 1 }}>{row.label}</span>
-            <span style={{ fontSize: '.68rem', fontWeight: 800, color: '#EEF2F8', marginLeft: 12 }}>{row.val}</span>
+          <div key={row.label} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 5, height: 5, borderRadius: '50%', background: `rgba(241,245,249,${row.opacity})`, flexShrink: 0 }} />
+            <span style={{ fontSize: '.68rem', color: T.text2, flex: 1 }}>{row.label}</span>
+            <span style={{ fontSize: '.75rem', fontWeight: 700, color: T.text1, minWidth: 28, textAlign: 'right' }}>{row.val}</span>
           </div>
         ))}
       </div>
@@ -106,123 +113,136 @@ function ChartTip({ active, payload, label }: any) {
   );
 }
 
+// card shell — one consistent surface for all secondary cards
+const card = (extra?: React.CSSProperties): React.CSSProperties => ({
+  background: T.surface, borderRadius: 16, border: `1px solid ${T.border}`, ...extra,
+});
+
+// label above every section
+const sectionLabel: React.CSSProperties = {
+  fontSize: '.6rem', fontWeight: 600, color: T.text3,
+  textTransform: 'uppercase', letterSpacing: '.1em',
+};
+
 function GeralView() {
-  const allTasks   = BRANDS.flatMap(b => getMockBrandTasks(b.slug));
-  const total      = 319;
-  const done       = 214;
-  const inProg     = 35;
-  const aFazer     = total - done - inProg;
-  const emAprov    = allTasks.filter(t => t.status === 'em_aprovacao').length;
-  const emAjustes  = allTasks.filter(t => t.status === 'em_ajustes').length;
-  const pct        = Math.round(done / total * 100);
+  const allTasks  = BRANDS.flatMap(b => getMockBrandTasks(b.slug));
+  const total     = 319;
+  const done      = 214;
+  const inProg    = 35;
+  const aFazer    = total - done - inProg;
+  const emAprov   = allTasks.filter(t => t.status === 'em_aprovacao').length;
+  const emAjustes = allTasks.filter(t => t.status === 'em_ajustes').length;
+  const pct       = Math.round(done / total * 100);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
 
       {/* Row 1: Hero + Em andamento + Status geral */}
-      <div style={{ display: 'grid', gridTemplateColumns: '52% 1fr 1fr', gap: 12 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '52% 1fr 1fr', gap: 10 }}>
 
-        {/* Hero — Tarefas Concluídas */}
-        <div style={{ background: '#0C1425', borderRadius: 22, padding: '24px 28px', border: '1px solid rgba(255,255,255,.05)', overflow: 'hidden' }}>
-          <div style={{ fontSize: '.6rem', fontWeight: 700, color: 'rgba(238,242,248,.28)', textTransform: 'uppercase', letterSpacing: '.12em', marginBottom: 10 }}>Tarefas Concluídas</div>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 4 }}>
-            <span style={{ fontSize: '3.25rem', fontWeight: 800, color: '#EEF2F8', lineHeight: 1, letterSpacing: '-.045em' }}>{done}</span>
-            <span style={{ fontSize: '1.1rem', fontWeight: 600, color: 'rgba(238,242,248,.28)', letterSpacing: '-.02em' }}>/{total}</span>
+        {/* Hero — Tarefas Concluídas: the one primary number, stays white/large */}
+        <div style={{ ...card(), padding: '28px 28px 20px', overflow: 'hidden' }}>
+          <div style={{ ...sectionLabel, marginBottom: 16 }}>Tarefas Concluídas</div>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 14 }}>
+            <span style={{ fontSize: '3.5rem', fontWeight: 800, color: T.text1, lineHeight: 1, letterSpacing: '-.05em' }}>{done}</span>
+            <span style={{ fontSize: '1rem', fontWeight: 400, color: T.text3, letterSpacing: '-.01em' }}>/ {total}</span>
           </div>
           <SparklineSVG done={done} total={total} />
         </div>
 
-        {/* Em andamento */}
-        <div style={{ background: '#0C1425', borderRadius: 22, padding: '24px 24px', border: '1px solid rgba(255,255,255,.05)' }}>
-          <div style={{ fontSize: '.6rem', fontWeight: 700, color: 'rgba(238,242,248,.28)', textTransform: 'uppercase', letterSpacing: '.12em', marginBottom: 14 }}>Em Andamento</div>
-          <div style={{ fontSize: '3.25rem', fontWeight: 800, color: '#3D7BFF', lineHeight: 1, letterSpacing: '-.045em', marginBottom: 6 }}>{inProg}</div>
-          <div style={{ fontSize: '.7rem', color: 'rgba(238,242,248,.35)', fontWeight: 500, marginBottom: 18 }}>tarefas ativas agora</div>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <span style={{ padding: '4px 12px', borderRadius: 20, background: 'rgba(251,191,36,.12)', border: '1px solid rgba(251,191,36,.3)', fontSize: '.68rem', fontWeight: 700, color: '#FBBF24' }}>{emAprov} em aprovação</span>
-            <span style={{ padding: '4px 12px', borderRadius: 20, background: 'rgba(255,107,107,.12)', border: '1px solid rgba(255,107,107,.3)', fontSize: '.68rem', fontWeight: 700, color: '#FF6B6B' }}>{emAjustes} em ajustes</span>
+        {/* Em andamento — number white, not colored */}
+        <div style={{ ...card(), padding: '28px 24px' }}>
+          <div style={{ ...sectionLabel, marginBottom: 16 }}>Em Andamento</div>
+          <div style={{ fontSize: '3.5rem', fontWeight: 800, color: T.text1, lineHeight: 1, letterSpacing: '-.05em', marginBottom: 8 }}>{inProg}</div>
+          <div style={{ fontSize: '.72rem', color: T.text2, fontWeight: 400, marginBottom: 24 }}>tarefas ativas agora</div>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            <span style={{ padding: '4px 10px', borderRadius: 6, background: 'rgba(255,255,255,.04)', border: T.border, fontSize: '.65rem', fontWeight: 500, color: T.text2 }}>{emAprov} em aprovação</span>
+            <span style={{ padding: '4px 10px', borderRadius: 6, background: 'rgba(255,255,255,.04)', border: T.border, fontSize: '.65rem', fontWeight: 500, color: T.text2 }}>{emAjustes} em ajustes</span>
           </div>
         </div>
 
-        {/* Status Geral */}
-        <div style={{ background: '#0C1425', borderRadius: 22, padding: '24px 24px', border: '1px solid rgba(255,255,255,.05)' }}>
-          <div style={{ fontSize: '.6rem', fontWeight: 700, color: 'rgba(238,242,248,.28)', textTransform: 'uppercase', letterSpacing: '.12em', marginBottom: 18 }}>Status Geral</div>
+        {/* Status Geral — monochrome donut */}
+        <div style={{ ...card(), padding: '28px 24px' }}>
+          <div style={{ ...sectionLabel, marginBottom: 20 }}>Status Geral</div>
           <DonutChart pct={pct} done={done} aFazer={aFazer} emAndamento={inProg} />
         </div>
       </div>
 
-      {/* Row 2: 4 sprint project cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
-        {SPRINT_CARDS.map(card => {
-          const p = Math.round(card.done / card.total * 100);
+      {/* Row 2: 4 sprint project cards — neutral, progress in white */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
+        {SPRINT_CARDS.map(card2 => {
+          const p = Math.round(card2.done / card2.total * 100);
           return (
-            <div key={card.label} style={{ background: '#0C1425', borderRadius: 20, padding: '20px 22px', border: '1px solid rgba(255,255,255,.05)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <div style={{ width: 7, height: 7, borderRadius: '50%', background: card.dot }} />
-                  <span style={{ fontSize: '.62rem', fontWeight: 700, color: card.dot, textTransform: 'uppercase', letterSpacing: '.06em' }}>{card.label}</span>
-                </div>
-                <span style={{ fontSize: '.62rem', fontWeight: 700, color: 'rgba(238,242,248,.3)', background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.08)', borderRadius: 20, padding: '2px 8px' }}>
-                  {card.done}/{card.total}
-                </span>
+            <div key={card2.label} style={{ ...card(), padding: '22px 22px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                <span style={{ ...sectionLabel }}>{card2.label}</span>
+                <span style={{ fontSize: '.62rem', fontWeight: 500, color: T.text3 }}>{card2.done}/{card2.total}</span>
               </div>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 5, marginBottom: 10 }}>
-                <span style={{ fontSize: '2.25rem', fontWeight: 800, color: '#EEF2F8', lineHeight: 1, letterSpacing: '-.04em' }}>{p}%</span>
-                <span style={{ fontSize: '.72rem', fontWeight: 500, color: 'rgba(238,242,248,.35)' }}>concluído</span>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 5, marginBottom: 14 }}>
+                <span style={{ fontSize: '2rem', fontWeight: 700, color: T.text1, lineHeight: 1, letterSpacing: '-.04em' }}>{p}%</span>
+                <span style={{ fontSize: '.68rem', fontWeight: 400, color: T.text3 }}>concluído</span>
               </div>
-              <div style={{ height: 4, borderRadius: 3, background: 'rgba(255,255,255,.06)', overflow: 'hidden', marginBottom: 10 }}>
-                <div style={{ width: `${p}%`, height: '100%', background: card.color, borderRadius: 3, opacity: .85 }} />
+              <div style={{ height: 2, borderRadius: 2, background: 'rgba(255,255,255,.07)', overflow: 'hidden', marginBottom: 12 }}>
+                <div style={{ width: `${p}%`, height: '100%', background: 'rgba(241,245,249,.55)', borderRadius: 2 }} />
               </div>
-              <div style={{ fontSize: '.65rem', color: 'rgba(238,242,248,.3)', fontWeight: 500 }}>{card.inProg} em andamento</div>
+              <div style={{ fontSize: '.65rem', color: T.text3, fontWeight: 400 }}>{card2.inProg} em andamento</div>
             </div>
           );
         })}
       </div>
 
       {/* Row 3: Trend chart + Alta Prioridade */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 12 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: 10 }}>
 
-        {/* Tendência de Entrega */}
-        <div style={{ background: '#0C1425', borderRadius: 22, padding: '24px 28px', border: '1px solid rgba(255,255,255,.05)' }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 4 }}>
+        {/* Tendência de Entrega — accent color lives here (one per page) */}
+        <div style={{ ...card(), padding: '28px 28px' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20 }}>
             <div>
-              <div style={{ fontSize: '.6rem', fontWeight: 700, color: 'rgba(238,242,248,.28)', textTransform: 'uppercase', letterSpacing: '.12em', marginBottom: 6 }}>Tendência de Entrega</div>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-                <span style={{ fontSize: '1.5rem', fontWeight: 800, color: '#EEF2F8', letterSpacing: '-.03em' }}>{total}</span>
-                <span style={{ fontSize: '.72rem', color: 'rgba(238,242,248,.35)', fontWeight: 500 }}>tasks totais</span>
+              <div style={{ ...sectionLabel, marginBottom: 10 }}>Tendência de Entrega</div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 7 }}>
+                <span style={{ fontSize: '1.4rem', fontWeight: 700, color: T.text1, letterSpacing: '-.03em' }}>{total}</span>
+                <span style={{ fontSize: '.7rem', color: T.text2, fontWeight: 400 }}>tasks totais</span>
               </div>
             </div>
-            <button style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '.72rem', fontWeight: 700, color: '#3D7BFF', padding: '4px 0' }}>
+            <button style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '.7rem', fontWeight: 500, color: T.text2, padding: 0 }}>
               Ver no ClickUp →
             </button>
           </div>
-          <div style={{ marginTop: 16 }}>
-            <ResponsiveContainer width="100%" height={180}>
-              <LineChart data={TREND_DATA} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="2 4" stroke="rgba(255,255,255,.04)" vertical={false} />
-                <XAxis dataKey="s" tick={{ fontSize: 9, fill: 'rgba(238,242,248,.22)', fontWeight: 500 }} axisLine={false} tickLine={false} interval={1} />
-                <YAxis tick={{ fontSize: 9, fill: 'rgba(238,242,248,.22)' }} axisLine={false} tickLine={false} width={28} ticks={[0, 80, 160, 240, 320]} />
-                <Tooltip content={<ChartTip />} cursor={{ stroke: 'rgba(61,123,255,.3)', strokeWidth: 1 }} />
-                <Line type="monotone" dataKey="v" stroke="#3D7BFF" strokeWidth={2.5} dot={false} activeDot={{ r: 4, fill: '#3D7BFF', strokeWidth: 0 }} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
+          <ResponsiveContainer width="100%" height={172}>
+            <LineChart data={TREND_DATA} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="1 4" stroke="rgba(255,255,255,.04)" vertical={false} />
+              <XAxis dataKey="s" tick={{ fontSize: 9, fill: T.text3, fontWeight: 400 }} axisLine={false} tickLine={false} interval={1} />
+              <YAxis tick={{ fontSize: 9, fill: T.text3 }} axisLine={false} tickLine={false} width={26} ticks={[0, 80, 160, 240, 320]} />
+              <Tooltip content={<ChartTip />} cursor={{ stroke: 'rgba(255,255,255,.06)', strokeWidth: 1 }} />
+              <Line type="monotone" dataKey="v" stroke={T.accent} strokeWidth={2} dot={false} activeDot={{ r: 3, fill: T.accent, strokeWidth: 0 }} />
+            </LineChart>
+          </ResponsiveContainer>
         </div>
 
-        {/* Alta Prioridade */}
-        <div style={{ background: 'linear-gradient(160deg, #1a0c0c 0%, #0C1425 60%)', borderRadius: 22, padding: '24px 22px', border: '1px solid rgba(255,107,107,.15)', position: 'relative', overflow: 'hidden' }}>
-          <div style={{ position: 'absolute', top: 0, right: 0, width: 120, height: 120, borderRadius: '50%', background: 'rgba(255,107,107,.06)', filter: 'blur(40px)', pointerEvents: 'none' }} />
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-            <div style={{ fontSize: '.6rem', fontWeight: 700, color: 'rgba(238,242,248,.28)', textTransform: 'uppercase', letterSpacing: '.12em' }}>Alta Prioridade</div>
-            <span style={{ width: 22, height: 22, borderRadius: '50%', background: '#FF6B6B', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '.65rem', fontWeight: 800, color: '#fff' }}>{HIGH_PRI_TASKS.length}</span>
+        {/* Alta Prioridade — the ONE accent element (danger), kept restrained */}
+        <div style={{
+          background: T.surface, borderRadius: 16,
+          border: `1px solid ${T.dangerBorder}`,
+          padding: '28px 22px',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+            <div style={{ ...sectionLabel }}>Alta Prioridade</div>
+            <span style={{ fontSize: '.65rem', fontWeight: 600, color: T.danger, background: T.dangerBg, border: `1px solid ${T.dangerBorder}`, borderRadius: 6, padding: '2px 8px' }}>
+              {HIGH_PRI_TASKS.length}
+            </span>
           </div>
-          <div style={{ fontSize: '3.25rem', fontWeight: 800, color: '#FF6B6B', lineHeight: 1, letterSpacing: '-.045em', marginBottom: 4 }}>{HIGH_PRI_TASKS.length}</div>
-          <div style={{ fontSize: '.7rem', color: 'rgba(238,242,248,.35)', fontWeight: 500, marginBottom: 18 }}>tarefas críticas</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+          <div style={{ fontSize: '3rem', fontWeight: 800, color: T.danger, lineHeight: 1, letterSpacing: '-.045em', marginBottom: 4 }}>{HIGH_PRI_TASKS.length}</div>
+          <div style={{ fontSize: '.7rem', color: T.text3, fontWeight: 400, marginBottom: 22 }}>tarefas críticas</div>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
             {HIGH_PRI_TASKS.map((t, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', borderRadius: 10, background: 'rgba(255,107,107,.06)', border: '1px solid rgba(255,107,107,.1)' }}>
-                <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#FF6B6B', flexShrink: 0 }} />
-                <span style={{ flex: 1, fontSize: '.68rem', fontWeight: 500, color: 'rgba(238,242,248,.8)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</span>
-                <span style={{ fontSize: '.65rem', fontWeight: 800, color: '#FF6B6B', flexShrink: 0 }}>{t.icon}</span>
+              <div key={i} style={{
+                display: 'flex', alignItems: 'center', gap: 10,
+                padding: '10px 0',
+                borderTop: i === 0 ? 'none' : `1px solid rgba(255,255,255,.05)`,
+              }}>
+                <div style={{ width: 4, height: 4, borderRadius: '50%', background: T.danger, opacity: .7, flexShrink: 0 }} />
+                <span style={{ flex: 1, fontSize: '.7rem', fontWeight: 400, color: T.text2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</span>
+                <span style={{ fontSize: '.6rem', fontWeight: 500, color: T.danger, opacity: .7, flexShrink: 0 }}>{t.icon}</span>
               </div>
             ))}
           </div>
@@ -241,31 +261,28 @@ export default function Dashboard() {
     { key: 'vendeai', label: 'VENDEAÍ', color: getBrandConfig('vendeai')!.color },
     { key: 'pronto',  label: 'PRONTO',  color: getBrandConfig('pronto')!.color },
   ];
-  const activeColor = modes.find(m => m.key === mode)!.color;
-  const activeBrand = mode !== 'geral' ? getBrandConfig(mode as BrandSlug) : null;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
 
       {/* Switcher */}
-      <div style={{ background: '#0C0F1C', borderRadius: 22, padding: '16px 20px', border: '1px solid rgba(255,255,255,.06)', display: 'flex', alignItems: 'center', gap: 16 }}>
+      <div style={{ background: T.surface, borderRadius: 16, padding: '14px 20px', border: `1px solid ${T.border}`, display: 'flex', alignItems: 'center', gap: 16 }}>
         <div style={{ flexShrink: 0 }}>
-          <div style={{ fontSize: '.58rem', fontWeight: 700, color: 'rgba(238,242,248,.28)', textTransform: 'uppercase', letterSpacing: '.12em', marginBottom: 2 }}>Dashboard</div>
-          <div style={{ fontSize: '.72rem', fontWeight: 600, color: 'rgba(238,242,248,.4)' }}>
-            {mode === 'geral' ? 'Operação consolidada · NOVA · VENDEAÍ · PRONTO' : activeBrand?.description}
-          </div>
+          <div style={{ fontSize: '.58rem', fontWeight: 500, color: T.text3, textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 3 }}>Sprint Q3 · 2026</div>
+          <div style={{ fontSize: '.8rem', fontWeight: 600, color: T.text1 }}>Dashboard</div>
         </div>
-        <div style={{ flex: 1, height: 3, borderRadius: 2, background: `linear-gradient(90deg, ${activeColor}60, transparent)`, opacity: .5 }} />
-        <div style={{ display: 'flex', gap: 4, background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.06)', borderRadius: 14, padding: 4 }}>
+        <div style={{ flex: 1 }} />
+        <div style={{ display: 'flex', gap: 2, background: 'rgba(255,255,255,.03)', border: `1px solid ${T.border}`, borderRadius: 10, padding: 3 }}>
           {modes.map(m => {
             const active = m.key === mode;
             return (
               <button key={m.key} onClick={() => setMode(m.key)} style={{
-                padding: '7px 18px', borderRadius: 10,
-                border: active ? `1px solid ${m.color}44` : '1px solid transparent',
-                background: active ? `${m.color}18` : 'transparent',
-                color: active ? m.color : 'rgba(238,242,248,.35)',
-                fontSize: '.8rem', fontWeight: 800, cursor: 'pointer', letterSpacing: '.03em', transition: 'all .15s',
+                padding: '6px 16px', borderRadius: 7,
+                border: active ? `1px solid rgba(255,255,255,.1)` : '1px solid transparent',
+                background: active ? 'rgba(255,255,255,.07)' : 'transparent',
+                color: active ? T.text1 : T.text2,
+                fontSize: '.75rem', fontWeight: active ? 600 : 400,
+                cursor: 'pointer', letterSpacing: '.02em', transition: 'all .12s',
               }}>
                 {m.label}
               </button>
