@@ -5,14 +5,11 @@ import TaskReview from './pages/TaskReview';
 import SyncConfirmation from './pages/SyncConfirmation';
 import TaskClose from './pages/TaskClose';
 import Dashboard from './pages/Dashboard';
-import Sprints from './pages/Sprints';
 import Social from './pages/teams/Social';
 import Benchmarking from './pages/teams/Benchmarking';
 import Atendimento from './pages/teams/Atendimento';
 import Design from './pages/teams/Design';
 import EventosList from './pages/eventos/EventosList';
-import Instagram from './pages/Instagram';
-import BrandWorkspace from './pages/marcas/BrandWorkspace';
 
 export default function App() {
   return (
@@ -24,17 +21,13 @@ export default function App() {
           <Route path="/sync/:campaignId" element={<SyncConfirmation />} />
           <Route path="/close/:taskId" element={<TaskClose />} />
           <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/sprints" element={<Sprints />} />
           <Route path="/time/social" element={<Social />} />
           <Route path="/time/benchmarking" element={<Benchmarking />} />
           <Route path="/time/atendimento" element={<Atendimento />} />
           <Route path="/time/design" element={<Design />} />
-          <Route path="/instagram" element={<Instagram />} />
           <Route path="/eventos" element={<EventosList />} />
           <Route path="/eventos/:eventId" element={<EventosList />} />
           <Route path="/eventos/:eventId/:year" element={<EventosList />} />
-          <Route path="/marcas/:brand/*" element={<BrandWorkspace />} />
-          <Route path="/marcas" element={<BrandWorkspace />} />
         </Routes>
       </Layout>
     </BrowserRouter>
