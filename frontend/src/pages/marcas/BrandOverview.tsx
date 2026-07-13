@@ -7,10 +7,19 @@ import { getMockBrandTasks, type BrandTask } from '../../lib/brandData';
 // ─── Brand Theme System ────────────────────────────────────────────────────────
 interface BrandTheme {
   // surfaces
-  surface:       string;   // card background
-  surfaceHero:   string;   // hero/progress card background (gradient)
-  border:        string;   // card border
-  borderHero:    string;   // hero card border (slightly more visible)
+  surface:       string;   // card base bg (dark solid)
+  surfaceHero:   string;   // hero card base bg
+  // luminous border — Option C technique (gradient border + ambient)
+  luminous:      boolean;  // true for VENDEAÍ and PRONTO
+  cardBg:        string;   // padding-box layer (surface + corner tint)
+  cardBgHero:    string;   // padding-box layer for hero (stronger tint)
+  cardBorder:    string;   // border-box gradient (the stroke itself)
+  cardBorderHero:string;   // border-box gradient hero (slightly more visible)
+  cardShadow:    string;   // ambient box-shadow
+  cardShadowHero:string;   // hero ambient (stronger)
+  // NOVA fallback border (no luminous)
+  border:        string;
+  borderHero:    string;
   // accent palette
   accent:        string;   // primary brand color for numbers/highlights
   accent2:       string;   // secondary (gradient end, details)
@@ -48,43 +57,58 @@ interface BrandTheme {
 
 const THEMES: Record<string, BrandTheme> = {
   nova: {
-    surface:      '#0B0D14',
-    surfaceHero:  '#0B0D14',
-    border:       'rgba(255,255,255,.07)',
-    borderHero:   'rgba(255,255,255,.09)',
-    accent:       '#3D7BFF',
-    accent2:      '#6F9BFF',
-    accentMuted:  'rgba(61,123,255,.08)',
-    chartStroke:  '#3D7BFF',
-    chartGradStop:'rgba(61,123,255,.25)',
-    chartGradient:'#3D7BFF',
-    numColor:     '#F1F5F9',
-    labelColor:   'rgba(241,245,249,.22)',
-    bodyColor:    'rgba(241,245,249,.42)',
-    doneTint:     '#4ADE80',
-    doneBg:       'rgba(74,222,128,.08)',
-    activeTint:   '#3D7BFF',
-    activeBg:     'rgba(61,123,255,.08)',
-    warnTint:     '#FBBF24',
-    warnBg:       'rgba(251,191,36,.08)',
-    dangerTint:   '#FF6B6B',
-    dangerBg:     'rgba(255,107,107,.08)',
-    avatarBg:     'rgba(61,123,255,.1)',
-    avatarBorder: 'rgba(61,123,255,.22)',
-    avatarText:   '#3D7BFF',
-    progressFill: '#3D7BFF',
+    surface:       '#0B0D14',
+    surfaceHero:   '#0B0D14',
+    luminous:      false,
+    cardBg:        '#0B0D14',
+    cardBgHero:    '#0B0D14',
+    cardBorder:    'rgba(255,255,255,.07)',
+    cardBorderHero:'rgba(255,255,255,.09)',
+    cardShadow:    'none',
+    cardShadowHero:'none',
+    border:        'rgba(255,255,255,.07)',
+    borderHero:    'rgba(255,255,255,.09)',
+    accent:        '#3D7BFF',
+    accent2:       '#6F9BFF',
+    accentMuted:   'rgba(61,123,255,.08)',
+    chartStroke:   '#3D7BFF',
+    chartGradStop: 'rgba(61,123,255,.25)',
+    chartGradient: '#3D7BFF',
+    numColor:      '#F1F5F9',
+    labelColor:    'rgba(241,245,249,.22)',
+    bodyColor:     'rgba(241,245,249,.42)',
+    doneTint:      '#4ADE80',
+    doneBg:        'rgba(74,222,128,.08)',
+    activeTint:    '#3D7BFF',
+    activeBg:      'rgba(61,123,255,.08)',
+    warnTint:      '#FBBF24',
+    warnBg:        'rgba(251,191,36,.08)',
+    dangerTint:    '#FF6B6B',
+    dangerBg:      'rgba(255,107,107,.08)',
+    avatarBg:      'rgba(61,123,255,.1)',
+    avatarBorder:  'rgba(61,123,255,.22)',
+    avatarText:    '#3D7BFF',
+    progressFill:  '#3D7BFF',
     taskBorderHigh:'rgba(255,107,107,.7)',
     taskBorderMed: 'rgba(251,191,36,.5)',
-    tipBg:        '#090C14',
-    tipAccent:    '#3D7BFF',
+    tipBg:         '#090C14',
+    tipAccent:     '#3D7BFF',
   },
 
   vendeai: {
-    // Deep space with lilac tint — glass, not neon
-    surface:      'linear-gradient(145deg, #0E0B18 0%, #0C0A16 100%)',
-    surfaceHero:  'linear-gradient(145deg, #120D20 0%, #0E0A1A 60%, #0C0A16 100%)',
-    border:       'rgba(160,0,255,.13)',
-    borderHero:   'rgba(160,0,255,.22)',
+    // Deep space with lilac — glass, not neon
+    surface:       '#0C0A16',
+    surfaceHero:   '#0E0A1A',
+    luminous:      true,
+    // Option C: corner tint (padding-box) + gradient stroke (border-box)
+    cardBg:        'linear-gradient(155deg, rgba(160,0,255,.045) 0%, #0C0A16 38%) padding-box, linear-gradient(135deg, rgba(160,0,255,.52) 0%, rgba(0,217,255,.2) 55%, rgba(160,0,255,.1) 100%) border-box',
+    cardBgHero:    'linear-gradient(155deg, rgba(160,0,255,.07) 0%, #0E0A1A 38%) padding-box, linear-gradient(135deg, rgba(160,0,255,.7) 0%, rgba(0,217,255,.28) 50%, rgba(160,0,255,.15) 100%) border-box',
+    cardBorder:    '1px solid transparent',
+    cardBorderHero:'1px solid transparent',
+    cardShadow:    'inset 0 0 50px rgba(160,0,255,.025), 0 0 0 0.5px rgba(160,0,255,.07)',
+    cardShadowHero:'inset 0 0 70px rgba(160,0,255,.04), 0 0 0 0.5px rgba(160,0,255,.1)',
+    border:        'rgba(160,0,255,.13)',
+    borderHero:    'rgba(160,0,255,.22)',
     accent:       '#B07FFF',   // desaturated lilac — not full A000FF
     accent2:      '#4FC9E8',   // desaturated cyan
     accentMuted:  'rgba(160,0,255,.07)',
@@ -114,10 +138,17 @@ const THEMES: Record<string, BrandTheme> = {
 
   pronto: {
     // Dark amber warmth — performance, not cartoon orange
-    surface:      'linear-gradient(145deg, #120C07 0%, #0F0905 100%)',
-    surfaceHero:  'linear-gradient(145deg, #180E07 0%, #130A05 60%, #0F0905 100%)',
-    border:       'rgba(253,97,0,.14)',
-    borderHero:   'rgba(253,97,0,.25)',
+    surface:       '#0F0905',
+    surfaceHero:   '#130A05',
+    luminous:      true,
+    cardBg:        'linear-gradient(155deg, rgba(253,97,0,.05) 0%, #0F0905 38%) padding-box, linear-gradient(135deg, rgba(253,97,0,.58) 0%, rgba(209,43,1,.22) 55%, rgba(253,97,0,.09) 100%) border-box',
+    cardBgHero:    'linear-gradient(155deg, rgba(253,97,0,.08) 0%, #130A05 38%) padding-box, linear-gradient(135deg, rgba(253,97,0,.72) 0%, rgba(209,43,1,.3) 50%, rgba(253,97,0,.12) 100%) border-box',
+    cardBorder:    '1px solid transparent',
+    cardBorderHero:'1px solid transparent',
+    cardShadow:    'inset 0 0 50px rgba(253,97,0,.025), 0 0 0 0.5px rgba(253,97,0,.08)',
+    cardShadowHero:'inset 0 0 70px rgba(253,97,0,.04), 0 0 0 0.5px rgba(253,97,0,.12)',
+    border:        'rgba(253,97,0,.14)',
+    borderHero:    'rgba(253,97,0,.25)',
     accent:       '#FF8240',   // warm orange, slightly desaturated
     accent2:      '#D45A20',   // deep burnt orange
     accentMuted:  'rgba(253,97,0,.07)',
@@ -163,6 +194,14 @@ function getStatusCfg(th: BrandTheme): Record<BrandTask['status'], { label: stri
 
 // ── Shared style builders ──────────────────────────────────────────────────────
 function cardStyle(th: BrandTheme, hero = false): React.CSSProperties {
+  if (th.luminous) {
+    return {
+      background: hero ? th.cardBgHero : th.cardBg,
+      border: hero ? th.cardBorderHero : th.cardBorder,
+      boxShadow: hero ? th.cardShadowHero : th.cardShadow,
+      borderRadius: 16,
+    };
+  }
   return {
     background: hero ? th.surfaceHero : th.surface,
     border: `1px solid ${hero ? th.borderHero : th.border}`,
