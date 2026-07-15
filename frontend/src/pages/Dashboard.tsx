@@ -58,15 +58,15 @@ function SparklineSVG({ done, total }: { done: number; total: number }) {
       <svg viewBox="0 0 390 100" style={{ width: '100%', height: 60, display: 'block' }}>
         <defs>
           <linearGradient id="spkGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#fff" stopOpacity={0.07} />
-            <stop offset="100%" stopColor="#fff" stopOpacity={0} />
+            <stop offset="0%" stopColor="#3D7BFF" stopOpacity={0.15} />
+            <stop offset="100%" stopColor="#3D7BFF" stopOpacity={0} />
           </linearGradient>
         </defs>
         <path d={area} fill="url(#spkGrad)" />
-        <path d={d} fill="none" stroke="rgba(255,255,255,.3)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        <path d={d} fill="none" stroke="#3D7BFF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
-      <div style={{ position: 'absolute', top: 2, right: 0, background: 'rgba(255,255,255,.06)', border: T.border, borderRadius: 6, padding: '3px 9px', fontSize: '.65rem', fontWeight: 600, color: T.text2 }}>
-        {pct}% concluído
+      <div style={{ position: 'absolute', top: 2, right: 0, background: 'rgba(74,222,128,.08)', border: '1px solid rgba(74,222,128,.22)', borderRadius: 6, padding: '3px 9px', fontSize: '.65rem', fontWeight: 600, color: '#4ADE80' }}>
+        ↑ {pct}% concluído
       </div>
     </div>
   );
@@ -76,24 +76,25 @@ function DonutChart({ pct, done, aFazer, emAndamento }: { pct: number; done: num
   const r = 40, cx = 50, cy = 50, sw = 6;
   const circ     = 2 * Math.PI * r;
   const dashDone = circ * pct / 100;
+  const donutRows = [
+    { label: 'concluído',    val: done,        color: '#4ADE80' },
+    { label: 'a fazer',      val: aFazer,      color: 'rgba(241,245,249,.35)' },
+    { label: 'em andamento', val: emAndamento, color: '#3D7BFF' },
+  ];
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 22 }}>
       <svg width="100" height="100" viewBox="0 0 100 100" style={{ flexShrink: 0 }}>
         <circle cx={cx} cy={cy} r={r} fill="none" stroke="rgba(255,255,255,.05)" strokeWidth={sw} />
-        <circle cx={cx} cy={cy} r={r} fill="none" stroke="rgba(255,255,255,.55)" strokeWidth={sw}
+        <circle cx={cx} cy={cy} r={r} fill="none" stroke="#4ADE80" strokeWidth={sw}
           strokeDasharray={`${dashDone} ${circ}`} strokeLinecap="butt"
           transform={`rotate(-90 ${cx} ${cy})`} />
         <text x={cx} y={cy - 3} textAnchor="middle" fill={T.text1} fontSize="14" fontWeight="700">{pct}%</text>
         <text x={cx} y={cy + 11} textAnchor="middle" fill={T.text3} fontSize="7.5" fontWeight="500" letterSpacing="1">DONE</text>
       </svg>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {[
-          { label: 'concluído',    val: done,       opacity: '.65' },
-          { label: 'a fazer',      val: aFazer,     opacity: '.28' },
-          { label: 'em andamento', val: emAndamento, opacity: '.45' },
-        ].map(row => (
+        {donutRows.map(row => (
           <div key={row.label} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ width: 5, height: 5, borderRadius: '50%', background: `rgba(241,245,249,${row.opacity})`, flexShrink: 0 }} />
+            <div style={{ width: 5, height: 5, borderRadius: '50%', background: row.color, flexShrink: 0 }} />
             <span style={{ fontSize: '.68rem', color: T.text2, flex: 1 }}>{row.label}</span>
             <span style={{ fontSize: '.75rem', fontWeight: 700, color: T.text1, minWidth: 28, textAlign: 'right' }}>{row.val}</span>
           </div>
@@ -153,11 +154,11 @@ function GeralView() {
         {/* Em andamento — number white, not colored */}
         <div style={{ ...card(), padding: '28px 24px' }}>
           <div style={{ ...sectionLabel, marginBottom: 16 }}>Em Andamento</div>
-          <div style={{ fontSize: '3.5rem', fontWeight: 800, color: T.text1, lineHeight: 1, letterSpacing: '-.05em', marginBottom: 8 }}>{inProg}</div>
+          <div style={{ fontSize: '3.5rem', fontWeight: 800, color: '#3D7BFF', lineHeight: 1, letterSpacing: '-.05em', marginBottom: 8 }}>{inProg}</div>
           <div style={{ fontSize: '.72rem', color: T.text2, fontWeight: 400, marginBottom: 24 }}>tarefas ativas agora</div>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            <span style={{ padding: '4px 10px', borderRadius: 6, background: 'rgba(255,255,255,.04)', border: T.border, fontSize: '.65rem', fontWeight: 500, color: T.text2 }}>{emAprov} em aprovação</span>
-            <span style={{ padding: '4px 10px', borderRadius: 6, background: 'rgba(255,255,255,.04)', border: T.border, fontSize: '.65rem', fontWeight: 500, color: T.text2 }}>{emAjustes} em ajustes</span>
+            <span style={{ padding: '4px 10px', borderRadius: 6, background: 'rgba(74,222,128,.07)', border: '1px solid rgba(74,222,128,.22)', fontSize: '.65rem', fontWeight: 600, color: '#4ADE80' }}>{emAprov} em aprovação</span>
+            <span style={{ padding: '4px 10px', borderRadius: 6, background: 'rgba(220,68,68,.07)', border: '1px solid rgba(220,68,68,.22)', fontSize: '.65rem', fontWeight: 600, color: '#FF6B6B' }}>{emAjustes} em ajustes</span>
           </div>
         </div>
 
@@ -175,15 +176,18 @@ function GeralView() {
           return (
             <div key={card2.label} style={{ ...card(), padding: '22px 22px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                <span style={{ ...sectionLabel }}>{card2.label}</span>
-                <span style={{ fontSize: '.62rem', fontWeight: 500, color: T.text3 }}>{card2.done}/{card2.total}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                  <div style={{ width: 7, height: 7, borderRadius: '50%', background: card2.dot, flexShrink: 0 }} />
+                  <span style={{ ...sectionLabel, color: card2.dot }}>{card2.label}</span>
+                </div>
+                <span style={{ fontSize: '.62rem', fontWeight: 600, color: card2.color, background: `${card2.color}18`, border: `1px solid ${card2.color}30`, borderRadius: 6, padding: '2px 8px' }}>{card2.done}/{card2.total}</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 5, marginBottom: 14 }}>
                 <span style={{ fontSize: '2rem', fontWeight: 700, color: T.text1, lineHeight: 1, letterSpacing: '-.04em' }}>{p}%</span>
                 <span style={{ fontSize: '.68rem', fontWeight: 400, color: T.text3 }}>concluído</span>
               </div>
-              <div style={{ height: 2, borderRadius: 2, background: 'rgba(255,255,255,.07)', overflow: 'hidden', marginBottom: 12 }}>
-                <div style={{ width: `${p}%`, height: '100%', background: 'rgba(241,245,249,.55)', borderRadius: 2 }} />
+              <div style={{ height: 3, borderRadius: 2, background: 'rgba(255,255,255,.07)', overflow: 'hidden', marginBottom: 12 }}>
+                <div style={{ width: `${p}%`, height: '100%', background: card2.color, borderRadius: 2 }} />
               </div>
               <div style={{ fontSize: '.65rem', color: T.text3, fontWeight: 400 }}>{card2.inProg} em andamento</div>
             </div>
@@ -219,10 +223,11 @@ function GeralView() {
           </ResponsiveContainer>
         </div>
 
-        {/* Alta Prioridade — the ONE accent element (danger), kept restrained */}
+        {/* Alta Prioridade */}
         <div style={{
-          background: T.surface, borderRadius: 16,
-          border: `1px solid ${T.dangerBorder}`,
+          background: 'linear-gradient(160deg, rgba(220,40,40,.18) 0%, rgba(30,8,8,.95) 55%)',
+          borderRadius: 16,
+          border: '1px solid rgba(220,68,68,.2)',
           padding: '28px 22px',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
