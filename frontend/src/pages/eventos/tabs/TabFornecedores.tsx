@@ -7,7 +7,7 @@ interface Props {
   edicaoId: string;
 }
 
-const FORNECEDOR_CATS = ['Audiovisual', 'Buffet/Catering', 'Decoração', 'Estrutura', 'Gráfica', 'Hospedagem', 'Limpeza', 'Segurança', 'Transporte', 'Outro'];
+const FORNECEDOR_CATS = ['Audiovisual', 'Buffet/Catering', 'Decoração', 'Estrutura', 'Gráfica', 'Hospedagem', 'Limpeza', 'Segurança', 'Transporte', 'Outro', 'Outra categoria'];
 
 export default function TabFornecedores({ edicaoId }: Props) {
   const [linked, setLinked]     = useState<EdicaoFornecedor[]>([]);
@@ -28,6 +28,7 @@ export default function TabFornecedores({ edicaoId }: Props) {
   const [newWa, setNewWa]                 = useState('');
   const [newEmail, setNewEmail]           = useState('');
   const [newNotes, setNewNotes]           = useState('');
+  const [customCat, setCustomCat]         = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -68,7 +69,7 @@ export default function TabFornecedores({ edicaoId }: Props) {
     setSaving(true);
     const { data, error } = await supabase
       .from('evento_fornecedor')
-      .insert({ name: newName.trim(), category: newCat, contact_name: newContact.trim() || null, whatsapp: newWa.trim() || null, email: newEmail.trim() || null, notes: newNotes.trim() || null })
+      .insert({ name: newName.trim(), category: newCat === 'Outra categoria' ? (customCat.trim() || 'Outra') : newCat, contact_name: newContact.trim() || null, whatsapp: newWa.trim() || null, email: newEmail.trim() || null, notes: newNotes.trim() || null })
       .select('id').single();
     if (error) { setSaving(false); alert('Erro: ' + error.message); return; }
     const { error: e2 } = await supabase.from('evento_edicao_fornecedor').insert({
@@ -77,7 +78,7 @@ export default function TabFornecedores({ edicaoId }: Props) {
     setSaving(false);
     if (e2) { alert('Fornecedor criado, mas erro ao vincular: ' + e2.message); return; }
     setShowNew(false);
-    setNewName(''); setNewCat('Outro'); setNewContact(''); setNewWa(''); setNewEmail(''); setNewNotes('');
+    setNewName(''); setNewCat('Outro'); setNewContact(''); setNewWa(''); setNewEmail(''); setNewNotes(''); setCustomCat('');
     await load();
   }
 
@@ -247,6 +248,16 @@ export default function TabFornecedores({ edicaoId }: Props) {
               onChange={setNewCat}
               options={FORNECEDOR_CATS.map(c => ({ value: c, label: c }))}
             />
+            {newCat === 'Outra categoria' && (
+              <input
+                className="ev-input"
+                style={{ ...inputStyle, marginTop: 8 }}
+                value={customCat}
+                onChange={e => setCustomCat(e.target.value)}
+                placeholder="Digite a categoria..."
+                autoFocus
+              />
+            )}
           </ModalField>
           <ModalField label="Contato">
             <input className="ev-input" style={inputStyle} value={newContact}

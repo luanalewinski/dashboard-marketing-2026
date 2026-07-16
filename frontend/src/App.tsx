@@ -10,6 +10,7 @@ import Benchmarking from './pages/teams/Benchmarking';
 import Atendimento from './pages/teams/Atendimento';
 import Design from './pages/teams/Design';
 import EventosList from './pages/eventos/EventosList';
+import Reunioes from './pages/Reunioes';
 
 export default function App() {
   return (
@@ -25,6 +26,7 @@ export default function App() {
           <Route path="/time/benchmarking" element={<Benchmarking />} />
           <Route path="/time/atendimento" element={<Atendimento />} />
           <Route path="/time/design" element={<Design />} />
+          <Route path="/reunioes" element={<Reunioes />} />
           <Route path="/eventos" element={<EventosList />} />
           <Route path="/eventos/:eventId" element={<EventosList />} />
           <Route path="/eventos/:eventId/:year" element={<EventosList />} />

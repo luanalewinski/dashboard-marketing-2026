@@ -2,7 +2,7 @@
 // Para adicionar uma nova marca, basta acrescentar um objeto a BRANDS.
 // Nenhum outro arquivo precisa ser alterado para que a rota /marcas/:slug funcione.
 
-export type BrandSlug = 'nova' | 'vendeai' | 'pronto';
+export type BrandSlug = 'nova' | 'vendeai' | 'pronto' | '2s';
 
 export interface BrandConfig {
   slug: BrandSlug;
@@ -55,9 +55,21 @@ export const BRANDS: BrandConfig[] = [
     description: 'Crédito pessoal · soluções financeiras rápidas',
     handle: '@pronto.credito',
     borderGradient: ['#FD6100', '#D12B01'],
-    borderOpacity: 0.40, // laranja aparece bem com opacidade menor
+    borderOpacity: 0.40,
     filterStrategy: 'keyword',
     filterValue: 'pronto',
+  },
+  {
+    slug: '2s',
+    name: '2S',
+    color: '#06B6D4',
+    color2: 'rgba(6,182,212,.12)',
+    description: 'Correspondente bancário · crédito e soluções financeiras',
+    handle: '@2s.oficial',
+    borderGradient: ['#06B6D4', '#0EA5E9'],
+    borderOpacity: 0.50,
+    filterStrategy: 'keyword',
+    filterValue: '2s',
   },
 ];
 

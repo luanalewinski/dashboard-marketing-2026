@@ -7,6 +7,7 @@ const NAV_GROUPS = [
       { label: 'Dashboard',     to: '/dashboard', exact: true, icon: 'grid' },
       { label: 'Nova Campanha', to: '/',          exact: true, icon: 'plus' },
       { label: 'Eventos',       to: '/eventos',               icon: 'calendar' },
+      { label: 'Reuniões',      to: '/reunioes',              icon: 'mic' },
     ],
   },
   {
@@ -33,6 +34,7 @@ function NavIcon({ name, size = 15 }: { name: string; size?: number }) {
   if (name === 'pen-tool')   return <svg {...props}><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg>;
   if (name === 'instagram')  return <svg {...props}><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>;
   if (name === 'brand')      return <svg {...props}><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>;
+  if (name === 'mic')        return <svg {...props}><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>;
   return null;
 }
 
