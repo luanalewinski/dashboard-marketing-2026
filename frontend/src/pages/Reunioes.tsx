@@ -51,12 +51,59 @@ function BulletList({ items, color = T.accent }: { items: string[]; color?: stri
 
 function TaskRow({ task }: { task: MeetingTask }) {
   const pri = PRI[task.priority];
+  const [state, setState] = useState<'idle' | 'copied'>('idle');
+
+  function handleClickUp() {
+    const lines = [
+      `Tarefa: ${task.title}`,
+      `Responsável: ${task.responsible ?? 'A definir'}`,
+      `Prazo: ${task.deadline ?? 'A definir'}`,
+      `Prioridade: ${pri.label}`,
+    ];
+    navigator.clipboard.writeText(lines.join('\n')).then(() => {
+      setState('copied');
+      setTimeout(() => setState('idle'), 2500);
+    });
+    window.open('https://app.clickup.com', '_blank', 'noopener');
+  }
+
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto auto', alignItems: 'center', gap: 12, padding: '9px 12px', borderRadius: 10, background: T.surfaceEl, border: `1px solid ${T.border}` }}>
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto auto auto', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 10, background: T.surfaceEl, border: `1px solid ${T.border}` }}>
       <span style={{ fontSize: '.76rem', fontWeight: 500, color: T.text1 }}>{task.title}</span>
-      <span style={{ fontSize: '.66rem', color: T.text2 }}>{task.responsible ?? '— definir'}</span>
-      <span style={{ fontSize: '.66rem', color: T.text2 }}>{task.deadline ?? '— definir'}</span>
+      <span style={{ fontSize: '.66rem', color: T.text2, whiteSpace: 'nowrap' as const }}>{task.responsible ?? '— definir'}</span>
+      <span style={{ fontSize: '.66rem', color: T.text2, whiteSpace: 'nowrap' as const }}>{task.deadline ?? '— definir'}</span>
       <span style={{ fontSize: '.6rem', fontWeight: 700, color: pri.color, background: pri.bg, border: `1px solid ${pri.border}`, borderRadius: 5, padding: '2px 8px', whiteSpace: 'nowrap' as const }}>{pri.label}</span>
+      <button
+        onClick={handleClickUp}
+        title="Copiar detalhes e abrir ClickUp"
+        style={{
+          display: 'flex', alignItems: 'center', gap: 5,
+          padding: '4px 10px', borderRadius: 7,
+          border: state === 'copied'
+            ? '1px solid rgba(74,222,128,.35)'
+            : '1px solid rgba(61,123,255,.3)',
+          background: state === 'copied'
+            ? 'rgba(74,222,128,.08)'
+            : 'rgba(61,123,255,.08)',
+          color: state === 'copied' ? '#4ADE80' : '#3D7BFF',
+          fontSize: '.62rem', fontWeight: 700, cursor: 'pointer',
+          whiteSpace: 'nowrap' as const, transition: 'all .2s',
+          flexShrink: 0,
+        }}
+      >
+        {state === 'copied' ? (
+          '✓ Copiado!'
+        ) : (
+          <>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="11" height="11">
+              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+              <polyline points="15 3 21 3 21 9"/>
+              <line x1="10" y1="14" x2="21" y2="3"/>
+            </svg>
+            ClickUp
+          </>
+        )}
+      </button>
     </div>
   );
 }
@@ -85,8 +132,8 @@ function ResultView({ result, onCopyAta }: { result: MeetingResult; onCopyAta: (
 
       <SectionCard icon="☐" title={`Tasks Identificadas · ${result.tasks.length}`} accent="#FBBF24">
         <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 6 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto auto', gap: 12, padding: '0 12px', marginBottom: 4 }}>
-            {['Tarefa', 'Responsável', 'Prazo', 'Prioridade'].map(h => (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto auto auto', gap: 10, padding: '0 12px', marginBottom: 4 }}>
+            {['Tarefa', 'Responsável', 'Prazo', 'Prioridade', ''].map(h => (
               <span key={h} style={{ fontSize: '.58rem', fontWeight: 700, color: T.text3, textTransform: 'uppercase' as const, letterSpacing: '.08em' }}>{h}</span>
             ))}
           </div>
