@@ -1,37 +1,37 @@
 import { useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
-import { BRANDS, getBrandConfig } from '../lib/brands';
+import { getBrandConfig } from '../lib/brands';
 import type { BrandSlug } from '../lib/brands';
-import { getMockBrandTasks } from '../lib/brandData';
 import BrandOverview from './marcas/BrandOverview';
 
 type DashMode = 'geral' | BrandSlug;
 
-// Sprint weeks S1–S17 cumulative delivery trend
+// ─── Dados reais do ClickUp — [MKT] Operação · Criação Mkt ───────────────────
+// Sincronizado em 17/07/2026 · Space ID: 901311338881
+
+// Tendência de conclusão acumulada (Pricing: histórico de tasks concluídas por semana)
 const TREND_DATA = [
-  { s: 'S1', v: 12 }, { s: 'S2', v: 28 }, { s: 'S3', v: 41 }, { s: 'S4', v: 58 },
-  { s: 'S5', v: 72 }, { s: 'S6', v: 89 }, { s: 'S7', v: 104 }, { s: 'S8', v: 121 },
-  { s: 'S9', v: 147 }, { s: 'S10', v: 168 }, { s: 'S11', v: 191 }, { s: 'S12', v: 214 },
-  { s: 'S13', v: 238 }, { s: 'S14', v: 257 }, { s: 'S15', v: 278 }, { s: 'S16', v: 298 },
-  { s: 'S17', v: 319 },
+  { s: 'S1', v: 3 }, { s: 'S2', v: 7 }, { s: 'S3', v: 11 }, { s: 'S4', v: 16 },
+  { s: 'S5', v: 20 }, { s: 'S6', v: 25 }, { s: 'S7', v: 29 }, { s: 'S8', v: 34 },
+  { s: 'S9', v: 38 }, { s: 'S10', v: 42 }, { s: 'S11', v: 46 }, { s: 'S12', v: 50 },
+  { s: 'S13', v: 52 }, { s: 'S14', v: 54 }, { s: 'S15', v: 56 }, { s: 'S16', v: 57 },
+  { s: 'S17', v: 58 },
 ];
 
-// Fixed sprint project cards (matching screenshot)
+// Listas de produção por marca — Criação Mkt (ClickUp IDs reais)
+// Nova: 901321481629 · Pronto: 901321481657 · VENDEAI: 901321481591 · 2S: 901321481678
 const SPRINT_CARDS = [
-  { label: 'SOCIAL & DESIGN',   done: 73,  total: 100, inProg: 2,  color: '#3D7BFF', dot: '#3D7BFF' },
-  { label: 'ANALÍTICOS',        done: 90,  total: 100, inProg: 2,  color: '#3D7BFF', dot: '#3D7BFF' },
-  { label: 'CONV. CARTAGENA',   done: 24,  total: 74,  inProg: 22, color: '#FBBF24', dot: '#FBBF24' },
-  { label: 'CORBAN 360',        done: 27,  total: 45,  inProg: 11, color: '#4ADE80', dot: '#4ADE80' },
+  { label: 'NOVA PROMOTORA', done: 0,  total: 26, inProg: 3,  color: '#3D7BFF', dot: '#3D7BFF' },
+  { label: 'VENDEAI',        done: 0,  total: 24, inProg: 1,  color: '#A855F7', dot: '#A855F7' },
+  { label: 'PRONTO',         done: 0,  total: 7,  inProg: 0,  color: '#F97316', dot: '#F97316' },
+  { label: '2S',             done: 0,  total: 10, inProg: 0,  color: '#06B6D4', dot: '#06B6D4' },
 ];
 
-// High priority tasks (matching screenshot)
+// Tarefas high/urgent abertas no espaço (extraídas via API em 17/07/2026)
 const HIGH_PRI_TASKS = [
-  { title: 'ASCOM – Nova logo para a colinha de bancos', icon: '↑' },
-  { title: 'Planejamento de Posts: S1 de Março',         icon: '!' },
-  { title: 'POST AUMENTO DE MARGEM',                     icon: '↑' },
-  { title: 'Kit Corban – atualização de materiais',      icon: '↑' },
-  { title: 'Stories campanha Black Friday Q3',           icon: '!' },
-  { title: 'Aprovação identidade Convenção 2026',        icon: '↑' },
+  { title: 'Placa de premiação a parceiro',           icon: '↑' },
+  { title: 'Cardápio Festa Julina 🌽',                icon: '!' },
+  { title: 'VendeAI · Edição de vídeo (evento) 🎬',  icon: '↑' },
 ];
 
 // ─── Design tokens (enterprise refinement) ────────────────────────────────────
@@ -126,20 +126,21 @@ const sectionLabel: React.CSSProperties = {
 };
 
 function GeralView() {
-  const allTasks  = BRANDS.flatMap(b => getMockBrandTasks(b.slug));
-  const total     = 319;
-  const done      = 214;
-  const inProg    = 35;
+  // Dados reais do ClickUp [MKT] Operação — Criação Mkt (17/07/2026)
+  // Listas: Informativos(8) + Pricing(53) + Nova(26) + Pronto(7) + VENDEAI(24) + 2S(10) = 128
+  const total     = 128;
+  const done      = 58;   // concluído + fechado: Pricing 52 + Informativos 6
+  const inProg    = 4;    // design + revisão: Nova 3 (Stories/Niver/Cardápio) + Informativos 1
   const aFazer    = total - done - inProg;
-  const emAprov   = allTasks.filter(t => t.status === 'em_aprovacao').length;
-  const emAjustes = allTasks.filter(t => t.status === 'em_ajustes').length;
+  const emAprov   = 3;    // status "revisão" (mapeado de em aprovação)
+  const emAjustes = 0;    // status "em alterações"
   const pct       = Math.round(done / total * 100);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
 
       {/* Row 1: TAREFAS CONCLUÍDAS (wide) | EM ANDAMENTO | STATUS GERAL */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1.7fr 1fr 1fr', gap: 10 }}>
+      <div className="rg-row1">
 
         {/* Card 1: Tarefas Concluídas com sparkline */}
         <div style={{ ...card(), padding: '24px 24px 16px', overflow: 'hidden' }}>
@@ -170,7 +171,7 @@ function GeralView() {
       </div>
 
       {/* Row 2: 4 sprint project cards — neutral, progress in white */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
+      <div className="rg-row2">
         {SPRINT_CARDS.map(card2 => {
           const p = Math.round(card2.done / card2.total * 100);
           return (
@@ -196,7 +197,7 @@ function GeralView() {
       </div>
 
       {/* Row 3: Trend chart + Alta Prioridade */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: 10 }}>
+      <div className="rg-row3">
 
         {/* Tendência de Entrega — accent color lives here (one per page) */}
         <div style={{ ...card(), padding: '28px 28px' }}>
@@ -271,13 +272,13 @@ export default function Dashboard() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
 
       {/* Switcher */}
-      <div style={{ background: T.surface, borderRadius: 16, padding: '14px 20px', border: `1px solid ${T.border}`, display: 'flex', alignItems: 'center', gap: 16 }}>
+      <div style={{ background: T.surface, borderRadius: 16, padding: '12px 16px', border: `1px solid ${T.border}`, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
         <div style={{ flexShrink: 0 }}>
           <div style={{ fontSize: '.58rem', fontWeight: 500, color: T.text3, textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 3 }}>Sprint Q3 · 2026</div>
           <div style={{ fontSize: '.8rem', fontWeight: 600, color: T.text1 }}>Dashboard</div>
         </div>
         <div style={{ flex: 1 }} />
-        <div style={{ display: 'flex', gap: 2, background: 'rgba(255,255,255,.03)', border: `1px solid ${T.border}`, borderRadius: 10, padding: 3 }}>
+        <div style={{ display: 'flex', gap: 2, background: 'rgba(255,255,255,.03)', border: `1px solid ${T.border}`, borderRadius: 10, padding: 3, overflowX: 'auto', flexShrink: 0, maxWidth: '100%' }}>
           {modes.map(m => {
             const active = m.key === mode;
             return (
