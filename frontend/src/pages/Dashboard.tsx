@@ -114,78 +114,6 @@ function ChartTip({ active, payload, label }: any) {
   );
 }
 
-// ─── KPI Card executivo ────────────────────────────────────────────────────────
-interface KpiCardProps {
-  label: string;
-  value: number;
-  suffix: string;
-  pctOfTotal: number;
-  delta: string;
-  deltaLabel: string;
-  deltaPos: boolean;
-  color: string;
-  sparkPts: number[];
-  badges?: { label: string; color: string }[];
-}
-
-function MiniSparkline({ pts, color }: { pts: number[]; color: string }) {
-  const min = Math.min(...pts);
-  const max = Math.max(...pts);
-  const range = max - min || 1;
-  const w = 80, h = 28;
-  const xs = pts.map((_, i) => (i / (pts.length - 1)) * w);
-  const ys = pts.map(v => h - ((v - min) / range) * (h - 4) - 2);
-  const d = xs.map((x, i) => `${i === 0 ? 'M' : 'L'}${x},${ys[i]}`).join(' ');
-  return (
-    <svg viewBox={`0 0 ${w} ${h}`} style={{ width: 80, height: 28, display: 'block', flexShrink: 0 }}>
-      <path d={d} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" opacity={0.7} />
-      <circle cx={xs[xs.length - 1]} cy={ys[ys.length - 1]} r={2.5} fill={color} opacity={0.9} />
-    </svg>
-  );
-}
-
-function KpiCard({ label, value, suffix, pctOfTotal, delta, deltaLabel, deltaPos, color, sparkPts, badges }: KpiCardProps) {
-  return (
-    <div style={{
-      background: T.surface, borderRadius: 16, border: `1px solid ${T.border}`,
-      padding: '20px 20px 16px', display: 'flex', flexDirection: 'column', gap: 0,
-      position: 'relative', overflow: 'hidden',
-    }}>
-      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg, ${color}90, transparent)` }} />
-      <div style={{ ...sectionLabel, marginBottom: 10 }}>{label}</div>
-      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 8 }}>
-        <div>
-          <span style={{ fontSize: '2.4rem', fontWeight: 800, color: T.text1, lineHeight: 1, letterSpacing: '-.045em' }}>{value}</span>
-          {suffix && <span style={{ fontSize: '.68rem', color: T.text3, marginLeft: 6 }}>{suffix}</span>}
-        </div>
-        <MiniSparkline pts={sparkPts} color={color} />
-      </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: badges ? 10 : 0 }}>
-        <span style={{
-          fontSize: '.7rem', fontWeight: 700,
-          color: deltaPos ? '#4ADE80' : '#FF6B6B',
-          background: deltaPos ? 'rgba(74,222,128,.08)' : 'rgba(255,107,107,.08)',
-          border: `1px solid ${deltaPos ? 'rgba(74,222,128,.2)' : 'rgba(255,107,107,.2)'}`,
-          borderRadius: 5, padding: '2px 7px',
-        }}>
-          {deltaPos ? '↑' : '↓'} {delta}
-        </span>
-        <span style={{ fontSize: '.62rem', color: T.text3 }}>{deltaLabel}</span>
-        <span style={{ marginLeft: 'auto', fontSize: '.68rem', fontWeight: 700, color, background: `${color}12`, border: `1px solid ${color}25`, borderRadius: 5, padding: '2px 7px' }}>
-          {pctOfTotal}%
-        </span>
-      </div>
-      {badges && (
-        <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-          {badges.map(b => (
-            <span key={b.label} style={{ padding: '3px 8px', borderRadius: 5, background: `${b.color}08`, border: `1px solid ${b.color}22`, fontSize: '.6rem', fontWeight: 600, color: b.color }}>{b.label}</span>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
 // card shell — one consistent surface for all secondary cards
 const card = (extra?: React.CSSProperties): React.CSSProperties => ({
   background: T.surface, borderRadius: 16, border: `1px solid ${T.border}`, ...extra,
@@ -210,78 +138,33 @@ function GeralView() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
 
-      {/* Row 1: 4 KPI cards executivos */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
+      {/* Row 1: TAREFAS CONCLUÍDAS (wide) | EM ANDAMENTO | STATUS GERAL */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1.7fr 1fr 1fr', gap: 10 }}>
 
-        {/* KPI 1: Total de tarefas */}
-        <KpiCard
-          label="Total de Tarefas"
-          value={total}
-          suffix=""
-          pctOfTotal={100}
-          delta="+19"
-          deltaLabel="vs mês anterior"
-          deltaPos={true}
-          color={T.accent}
-          sparkPts={[180,200,214,228,240,258,272,289,305,319]}
-        />
-
-        {/* KPI 2: Concluídas */}
-        <KpiCard
-          label="Concluídas"
-          value={done}
-          suffix={`/ ${total}`}
-          pctOfTotal={pct}
-          delta="+12%"
-          deltaLabel="vs semana passada"
-          deltaPos={true}
-          color="#4ADE80"
-          sparkPts={[98,114,128,145,162,178,191,198,207,214]}
-        />
-
-        {/* KPI 3: Em andamento */}
-        <KpiCard
-          label="Em Andamento"
-          value={inProg}
-          suffix="ativas agora"
-          pctOfTotal={Math.round(inProg / total * 100)}
-          delta="+8%"
-          deltaLabel="vs semana passada"
-          deltaPos={true}
-          color="#3D7BFF"
-          sparkPts={[22,26,28,31,30,34,36,33,35,35]}
-          badges={[
-            { label: `${emAprov} em aprovação`, color: '#4ADE80' },
-            { label: `${emAjustes} em ajustes`, color: '#FF6B6B' },
-          ]}
-        />
-
-        {/* KPI 4: Alta prioridade */}
-        <KpiCard
-          label="Alta Prioridade"
-          value={HIGH_PRI_TASKS.length}
-          suffix="tarefas críticas"
-          pctOfTotal={Math.round(HIGH_PRI_TASKS.length / total * 100)}
-          delta="-1"
-          deltaLabel="vs semana passada"
-          deltaPos={false}
-          color="#FF6B6B"
-          sparkPts={[9,8,8,7,9,8,7,7,6,6]}
-        />
-      </div>
-
-      {/* Row 1b: Status geral (donut) */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-        <div style={{ ...card(), padding: '28px 28px 20px', overflow: 'hidden' }}>
-          <div style={{ ...sectionLabel, marginBottom: 16 }}>Tendência de Conclusão</div>
+        {/* Card 1: Tarefas Concluídas com sparkline */}
+        <div style={{ ...card(), padding: '24px 24px 16px', overflow: 'hidden' }}>
+          <div style={{ ...sectionLabel, marginBottom: 14 }}>Tarefas Concluídas</div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 14 }}>
             <span style={{ fontSize: '3.5rem', fontWeight: 800, color: T.text1, lineHeight: 1, letterSpacing: '-.05em' }}>{done}</span>
-            <span style={{ fontSize: '1rem', fontWeight: 400, color: T.text3, letterSpacing: '-.01em' }}>/ {total}</span>
+            <span style={{ fontSize: '1rem', fontWeight: 400, color: T.text3, letterSpacing: '-.01em' }}>/{total}</span>
           </div>
           <SparklineSVG done={done} total={total} />
         </div>
-        <div style={{ ...card(), padding: '28px 24px' }}>
-          <div style={{ ...sectionLabel, marginBottom: 20 }}>Status Geral</div>
+
+        {/* Card 2: Em Andamento */}
+        <div style={{ ...card(), padding: '24px 22px' }}>
+          <div style={{ ...sectionLabel, marginBottom: 14 }}>Em Andamento</div>
+          <div style={{ fontSize: '3.5rem', fontWeight: 800, color: '#3D7BFF', lineHeight: 1, letterSpacing: '-.05em', marginBottom: 6 }}>{inProg}</div>
+          <div style={{ fontSize: '.7rem', color: T.text3, marginBottom: 16 }}>tarefas ativas agora</div>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            <span style={{ padding: '3px 9px', borderRadius: 5, background: 'rgba(74,222,128,.08)', border: '1px solid rgba(74,222,128,.22)', fontSize: '.62rem', fontWeight: 600, color: '#4ADE80' }}>{emAprov} em aprovação</span>
+            <span style={{ padding: '3px 9px', borderRadius: 5, background: 'rgba(255,107,107,.08)', border: '1px solid rgba(255,107,107,.22)', fontSize: '.62rem', fontWeight: 600, color: '#FF6B6B' }}>{emAjustes} em ajustes</span>
+          </div>
+        </div>
+
+        {/* Card 3: Status Geral (donut) */}
+        <div style={{ ...card(), padding: '24px 22px' }}>
+          <div style={{ ...sectionLabel, marginBottom: 16 }}>Status Geral</div>
           <DonutChart pct={pct} done={done} aFazer={aFazer} emAndamento={inProg} />
         </div>
       </div>
