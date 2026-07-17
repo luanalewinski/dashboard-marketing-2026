@@ -145,7 +145,7 @@ function GeralView() {
         <div style={{ ...card(), padding: '24px 24px 16px', overflow: 'hidden' }}>
           <div style={{ ...sectionLabel, marginBottom: 14 }}>Tarefas Concluídas</div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 14 }}>
-            <span style={{ fontSize: '3.5rem', fontWeight: 800, color: T.text1, lineHeight: 1, letterSpacing: '-.05em' }}>{done}</span>
+            <span style={{ fontSize: '3.5rem', fontWeight: 800, color: '#4ADE80', lineHeight: 1, letterSpacing: '-.05em' }}>{done}</span>
             <span style={{ fontSize: '1rem', fontWeight: 400, color: T.text3, letterSpacing: '-.01em' }}>/{total}</span>
           </div>
           <SparklineSVG done={done} total={total} />
